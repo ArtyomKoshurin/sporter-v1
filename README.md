@@ -1,2 +1,2 @@
-# Sporter-V1
+# sporter-v1
 First pet-project
