@@ -7,7 +7,11 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 class CustomUser(AbstractUser):
     """Кастомная модель пользователя."""
-    username = models.CharField('Логин', max_length=150, unique=True)
+    username = models.CharField(
+        'Логин',
+        max_length=150,
+        unique=True
+    )
     email = models.EmailField(
         _('email'),
         max_length=254,
@@ -24,8 +28,16 @@ class CustomUser(AbstractUser):
         null=True,
         blank=True
     )
-    birth_year = models.IntegerField('Год рождения', null=True, blank=True)
-    bio = models.TextField('О себе', null=True, blank=True)
+    birth_year = models.IntegerField(
+        'Год рождения',
+        null=True,
+        blank=True
+    )
+    bio = models.TextField(
+        'О себе',
+        null=True,
+        blank=True
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'password']
