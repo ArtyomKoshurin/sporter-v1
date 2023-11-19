@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Activity(models.Model):
@@ -84,7 +84,10 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name='comments'
     )
-    text = models.TextField(verbose_name='Текст')
+    text = models.TextField(
+        verbose_name='Текст',
+        validators=[MinValueValidator(1), MaxValueValidator(2000)]
+    )
     author = models.ForeignKey(
         CustomUser,
         verbose_name='Автор комментария',
@@ -98,7 +101,7 @@ class Comment(models.Model):
     )
 
     class Meta:
-        ordering = ['pub_date']
+        ordering = ['-id']
 
 
 class Participation(models.Model):
@@ -127,3 +130,31 @@ class Participation(models.Model):
     def __str__(self):
         return (f'Пользователь {self.user.username} участвует в мероприятии'
                 f'{self.post}')
+
+
+class Like(models.Model):
+    """Модель лайков комментариев."""
+    user = models.ForeignKey(
+        CustomUser,
+        verbose_name='Участник',
+        related_name='like',
+        on_delete=models.CASCADE
+    )
+    comment = models.ForeignKey(
+        Comment,
+        verbose_name='Комментарий',
+        related_name='like',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'comment'],
+                name='unique_like'
+            )
+        ]
+
+    def __str__(self):
+        return (f'Пользователь {self.user.username} оценил комментарий'
+                f'{self.comment}')
