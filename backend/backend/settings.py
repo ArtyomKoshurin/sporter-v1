@@ -11,7 +11,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+
+from dotenv import load_dotenv
 from pathlib import Path
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-79my6d$89-wge6yf_h1fw+dm18fx@qt)ok2tl$inzb^rn^k4ay"
+SECRET_KEY = os.getenv('SECRET_KEY', default='key')
+# django-insecure-79my6d$89-wge6yf_h1fw+dm18fx@qt)ok2tl$inzb^rn^k4ay
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -115,20 +120,20 @@ REST_FRAMEWORK = {
     # 'PAGE_SIZE': 10,
 }
 
-# EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+# Email activation
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-EMAIL_USE_TLC = True
-EMAIL_HOST = 'smtp.yandex.ru'
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
-EMAIL_PORT = 587
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', default=True)
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_PORT = os.getenv('EMAIL_PORT')
 
-
+# Djoser config
 DJOSER = {
     'HIDE_USERS': False,
     'ACTIVATION_URL': '#/activation/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': True,
-    # 'ACTIVATION_EMAIL_TEMPLATE': '#/djoser/templates/email/activation.html',
     'SERIALIZERS': {
         'user_create': 'users.serializers.RegisterUserSerializer',
         'current_user': 'users.serializers.CustomUserSerializer',
