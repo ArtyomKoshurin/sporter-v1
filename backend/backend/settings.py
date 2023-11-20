@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "djoser",
+    "phonenumber_field",
     "users.apps.UsersConfig",
 ]
 
