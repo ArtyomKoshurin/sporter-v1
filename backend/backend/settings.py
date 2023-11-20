@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "djoser",
     "users.apps.UsersConfig",
 ]
 
@@ -114,8 +115,20 @@ REST_FRAMEWORK = {
     # 'PAGE_SIZE': 10,
 }
 
+# EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+
+EMAIL_USE_TLC = True
+EMAIL_HOST = 'smtp.yandex.ru'
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_PORT = 587
+
+
 DJOSER = {
     'HIDE_USERS': False,
+    'ACTIVATION_URL': '#/activation/{uid}/{token}',
+    'SEND_ACTIVATION_EMAIL': True,
+    # 'ACTIVATION_EMAIL_TEMPLATE': '#/djoser/templates/email/activation.html',
     'SERIALIZERS': {
         'user_create': 'users.serializers.RegisterUserSerializer',
         'current_user': 'users.serializers.CustomUserSerializer',
