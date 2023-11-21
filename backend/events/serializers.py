@@ -25,7 +25,7 @@ class EventGetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EventPost
-        fields = ('id', 'name', 'text', 'activity', 'date', 'author',
+        fields = ('id', 'name', 'text', 'activity', 'datetime', 'author',
                   'duration', 'place', 'is_participing', 'comments')
 
     def get_is_participing(self, obj):
@@ -45,14 +45,14 @@ class EventCreateSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)
     text = serializers.CharField(required=True)
     activity = ActivitySerializer()
-    date = serializers.DateTimeField(required=True)
+    datetime = serializers.DateTimeField(required=True)
     author = CustomUserSerializer(read_only=True)
     duration = serializers.IntegerField(required=True)
     place = serializers.CharField(required=True)
 
     class Meta:
         model = EventPost
-        fields = ('id', 'name', 'text', 'activity', 'date', 'author',
+        fields = ('id', 'name', 'text', 'activity', 'datetime', 'author',
                   'duration', 'place')
 
     def validate_name(self, value):
@@ -98,9 +98,9 @@ class EventCreateSerializer(serializers.ModelSerializer):
             'duration',
             instance.duration
         )
-        instance.date = validated_data.get(
-            'date',
-            instance.date
+        instance.datetime = validated_data.get(
+            'datetime',
+            instance.datetime
         )
         instance.place = validated_data.get(
             'place',

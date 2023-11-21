@@ -52,7 +52,7 @@ class EventPost(models.Model):
         verbose_name='Вид активности мероприятия',
         on_delete=models.CASCADE
     )
-    date = models.DateTimeField(
+    datetime = models.DateTimeField(
         verbose_name='Дата и время проведения мероприятия'
     )
     author = models.ForeignKey(
