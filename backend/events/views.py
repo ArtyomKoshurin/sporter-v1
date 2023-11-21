@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 
 from .models import (
     Activity,
@@ -19,6 +20,7 @@ from .serializers import (
 )
 
 from .permissions import IsAdminAuthorOrReadOnly
+from .pagination import CustomPaginator
 
 
 class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
@@ -32,6 +34,7 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     """Вьюсет для работы с постами мероприятий."""
     queryset = EventPost.objects.all()
+    pagination_class = PageNumberPagination
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve', 'participing']:
@@ -80,6 +83,8 @@ class EventViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Сериализатор для комментариев к постам."""
+    pagination_class = CustomPaginator
+
     def get_queryset(self):
         post = get_object_or_404(EventPost, id=self.kwargs['post_id'])
         return post.comments.all()
