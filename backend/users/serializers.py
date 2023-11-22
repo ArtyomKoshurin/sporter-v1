@@ -25,11 +25,11 @@ class RegisterUserSerializer(UserCreateSerializer):
                   'email',
                   'first_name',
                   'last_name',
-                  'bio',
-                  'birth_year',
                   'phone_number',
-                  'password',
-                  'photo',)
+                  'photo',
+                  'birth_year',
+                  'bio',
+                  'password')
 
     def validate_username(self, data):
         username = data
@@ -43,6 +43,11 @@ class RegisterUserSerializer(UserCreateSerializer):
                 f'Символы {"".join(error_symbols_list)} недопустимы'
             )
         return data
+    
+    def validate_birth_year(self, value):
+        if value >= datetime.datetime.now().year:
+            raise ValidationError('Некорректный формат данных')
+        return value
 
 
 class CustomUserSerializer(UserSerializer):
@@ -58,7 +63,6 @@ class CustomUserSerializer(UserSerializer):
                   'email',
                   'first_name',
                   'last_name',
-                  'birth_year',
                   'phone_number',
                   'photo',
                   'age',
@@ -79,9 +83,3 @@ class CustomUserSerializer(UserSerializer):
     
     def get_subscribers_count(self, user):
         return user.subscribers.all().count()
-    
-    # валидация не работает!
-    def validate_age(self, value):
-        if type(value) is not int or value >= datetime.datetime.now().year:
-            raise ValidationError('Некорректный формат данных')
-        return value

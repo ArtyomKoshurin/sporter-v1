@@ -24,7 +24,7 @@ class CustomUserViewSet(UserViewSet):
         if self.action == 'me':
             self.permission_classes = [permissions.IsAuthenticated, ]
         return super().get_permissions()
-    
+
     @action(methods=['post', 'delete'],
             detail=True,
             permission_classes=[permissions.IsAuthenticated, ])
