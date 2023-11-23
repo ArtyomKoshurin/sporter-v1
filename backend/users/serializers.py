@@ -1,18 +1,15 @@
 import datetime
 import re
 
-# from django.shortcuts import get_object_or_404
-
-# from drf_extra_fields.fields import Base64ImageField
-
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-# from rest_framework.validators import UniqueTogetherValidator
 
 from djoser.serializers import (UserSerializer,
                                 UserCreateSerializer)
 
 from .models import CustomUser
+
+# from events.serializers import EventGetSerializer
 
 
 class RegisterUserSerializer(UserCreateSerializer):
@@ -55,6 +52,8 @@ class CustomUserSerializer(UserSerializer):
     age = serializers.SerializerMethodField()
     subscribers_count = serializers.SerializerMethodField()
     is_subscribed = serializers.SerializerMethodField()
+    # event_author = EventGetSerializer(many=True, read_only=True)
+    # participation = EventGetSerializer(many=True, read_only=True)
 
     class Meta:
         model = CustomUser
@@ -68,7 +67,10 @@ class CustomUserSerializer(UserSerializer):
                   'age',
                   'bio',
                   'is_subscribed',
-                  'subscribers_count')
+                  'subscribers_count',
+                #   'event_author',
+                #   'participation'
+                  )
 
     def get_age(self, user):
         if user.birth_year:
