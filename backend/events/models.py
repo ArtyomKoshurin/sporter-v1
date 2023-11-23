@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -5,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class Activity(models.Model):
     """Модель видов спорта."""
     name = models.CharField(
-        verbose_name='Название вида спорта',
+        verbose_name='Вид спорта',
         max_length=124,
         unique=True
     )
@@ -17,13 +18,13 @@ class Activity(models.Model):
 class ActivityForUser(models.Model):
     """Вспомогательная модель для связи 'вид спорта-юзер'."""
     user = models.ForeignKey(
-        CustomUser,
-        related_name='activity_for_user',
+        settings.AUTH_USER_MODEL,
+        related_name='activities_for_user',
         on_delete=models.CASCADE
     )
     activity = models.ForeignKey(
         Activity,
-        related_name='activity_for_user',
+        related_name='users_for_activity',
         on_delete=models.CASCADE
     )
 
@@ -46,17 +47,16 @@ class EventPost(models.Model):
         max_length=124
     )
     text = models.TextField(verbose_name='Описание мероприятия')
-    activity = models.ForeignKey(
+    activity = models.ManyToManyField(
         Activity,
-        related_name='event_activity',
-        verbose_name='Вид активности мероприятия',
-        on_delete=models.CASCADE
+        through='ActivityForEventPost',
+        verbose_name='Вид активности мероприятия'
     )
     datetime = models.DateTimeField(
         verbose_name='Дата и время проведения мероприятия'
     )
     author = models.ForeignKey(
-        CustomUser,
+        settings.AUTH_USER_MODEL,
         related_name='event_author',
         on_delete=models.CASCADE
     )
@@ -68,12 +68,42 @@ class EventPost(models.Model):
         verbose_name='Место проведения',
         max_length=256
     )
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through='Participation',
+        verbose_name='Участники'
+    )
 
     class Meta:
         ordering = ('-id',)
 
     def __str__(self):
         return self.name
+
+
+class ActivityForEventPost(models.Model):
+    """Вспомогательная модель для связи 'вид спорта-юзер'."""
+    event = models.ForeignKey(
+        EventPost,
+        related_name='activities_for_event',
+        on_delete=models.CASCADE
+    )
+    activity = models.ForeignKey(
+        Activity,
+        related_name='events_for_activity',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'activity'],
+                name='unique_activity_for_user'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.event}: {self.activity}'
 
 
 class Comment(models.Model):
@@ -89,7 +119,7 @@ class Comment(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(2000)]
     )
     author = models.ForeignKey(
-        CustomUser,
+        settings.AUTH_USER_MODEL,
         verbose_name='Автор комментария',
         on_delete=models.CASCADE,
         related_name='comments'
@@ -99,6 +129,11 @@ class Comment(models.Model):
         auto_now_add=True,
         db_index=True
     )
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through='Like',
+        verbose_name='Лайки'
+    )
 
     class Meta:
         ordering = ['-id']
@@ -107,43 +142,43 @@ class Comment(models.Model):
 class Participation(models.Model):
     """Модель участия пользователя в мероприятии."""
     user = models.ForeignKey(
-        CustomUser,
+        settings.AUTH_USER_MODEL,
         verbose_name='Участник',
-        related_name='participation',
+        related_name='events_participation_for_user',
         on_delete=models.CASCADE
     )
-    post = models.ForeignKey(
+    event = models.ForeignKey(
         EventPost,
         verbose_name='Мероприятие',
-        related_name='participation',
+        related_name='users_participation_for_event',
         on_delete=models.CASCADE
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'post'],
+                fields=['user', 'event'],
                 name='unique_participation'
             )
         ]
 
     def __str__(self):
         return (f'Пользователь {self.user.username} участвует в мероприятии'
-                f'{self.post}')
+                f'{self.event}')
 
 
 class Like(models.Model):
     """Модель лайков комментариев."""
     user = models.ForeignKey(
-        CustomUser,
+        settings.AUTH_USER_MODEL,
         verbose_name='Участник',
-        related_name='like',
+        related_name='comments_liked_for_user',
         on_delete=models.CASCADE
     )
     comment = models.ForeignKey(
         Comment,
         verbose_name='Комментарий',
-        related_name='like',
+        related_name='users_for_liked_comment',
         on_delete=models.CASCADE
     )
 
