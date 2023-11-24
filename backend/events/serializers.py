@@ -29,7 +29,7 @@ class EventSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault()
     )
     duration = serializers.IntegerField(required=True)
-    is_participing = serializers.SerializerMethodField()
+    is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
     participants = serializers.PrimaryKeyRelatedField(
         read_only=True, many=True
@@ -98,7 +98,7 @@ class EventSerializer(serializers.ModelSerializer):
 
         return instance
     
-    def get_is_participing(self, event):
+    def get_is_participate(self, event):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
