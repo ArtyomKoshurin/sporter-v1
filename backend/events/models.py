@@ -15,8 +15,8 @@ class Activity(models.Model):
         return self.name
 
 
-class ActivityForUser(models.Model):
-    """Вспомогательная модель для связи 'вид спорта-юзер'."""
+class FavoriteActivity(models.Model):
+    """Вспомогательная модель любимых видов спорта пользователя."""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name='activities_for_user',
@@ -64,7 +64,7 @@ class EventPost(models.Model):
         validators=MinValueValidator(1),
         verbose_name='Длительность мероприятия (мин)'
     )
-    place = models.CharField(
+    location = models.CharField(
         verbose_name='Место проведения',
         max_length=256
     )
@@ -108,7 +108,7 @@ class ActivityForEventPost(models.Model):
 
 class Comment(models.Model):
     """Модель комментария к отзыву."""
-    post = models.ForeignKey(
+    event = models.ForeignKey(
         EventPost,
         verbose_name='Комментарий к посту',
         on_delete=models.CASCADE,

@@ -13,10 +13,8 @@ from .models import (
 )
 from .serializers import (
     ActivitySerializer,
-    EventGetSerializer,
-    EventCreateSerializer,
-    CommentCreateSerializer,
-    CommentGetSerializer
+    EventSerializer,
+    CommentSerializer
 )
 
 from .permissions import IsAdminAuthorOrReadOnly
@@ -34,76 +32,77 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     """Вьюсет для работы с постами мероприятий."""
     queryset = EventPost.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = PageNumberPagination
-
-    def get_serializer_class(self):
-        if self.action in ['list', 'retrieve', 'participing']:
-            return EventGetSerializer
-        return EventCreateSerializer
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            permission_classes = [permissions.AllowAny]
+            self.permission_classes = [permissions.AllowAny]
         elif self.request.method == 'PATCH' or self.request.method == 'DELETE':
-            permission_classes = [IsAdminAuthorOrReadOnly]
-        elif self.action == 'participing':
-            permission_classes = [permissions.IsAuthenticated]
+            self.permission_classes = [IsAdminAuthorOrReadOnly]
         else:
-            permission_classes = [permissions.IsAuthenticated]
-        return [permission() for permission in permission_classes]
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+            self.permission_classes = [permissions.IsAuthenticated]
+        return super().get_permissions()
 
     @action(methods=['POST', 'DELETE'], detail=False,
-            url_path=r'(?P<post_id>\d+)/participing',
+            url_path=r'(?P<event_id>\d+)/participate',
             permission_classes=(permissions.IsAuthenticated,))
-    def participing(self, request, **kwargs):
-        post = get_object_or_404(EventPost, id=kwargs['post_id'])
+    def participate(self, request, **kwargs):
+        event = get_object_or_404(EventPost, id=kwargs['event_id'])
+
+        participation = Participation.objects.filter(
+                user=request.user, event=event
+        )
 
         if request.method == 'POST':
-            if Participation.objects.filter(
-                    user=request.user, post=post).exists():
+            if participation.exists():
                 return Response('Вы уже идете на это мероприятие.',
                                 status=status.HTTP_400_BAD_REQUEST)
-            Participation.objects.create(user=request.user, post=post)
-            return Response(data=self.get_serializer(post).data,
+            Participation.objects.create(user=request.user, event=event)
+            serializer = serializer(event)
+            return Response(data=serializer.data,
                             status=status.HTTP_201_CREATED)
 
-        participing = Participation.objects.filter(
-                user=request.user, post=post).first()
-        if not participing:
+        if not participation.exists():
             return Response('Вы еще не подписались '
                             'на участие в данном мероприятии',
                             status=status.HTTP_400_BAD_REQUEST)
-        participing.delete()
-        return Response(data=self.get_serializer(post).data,
-                        status=status.HTTP_204_NO_CONTENT)
+        participation.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=False,
+            permission_classes=[permissions.IsAuthenticated, ])
+    def participations(self, request):
+        subscribers_data = CustomUser.objects.filter(
+            subscribers__user=request.user
+        )
+        page = self.paginate_queryset(subscribers_data)
+        serializer = CustomUserContextSerializer(
+            page, many=True, context={'request': request}
+        )
+
+        return self.get_paginated_response(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Сериализатор для комментариев к постам."""
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = CustomPaginator
 
     def get_queryset(self):
-        post = get_object_or_404(EventPost, id=self.kwargs['post_id'])
+        post = get_object_or_404(EventPost, id=self.kwargs['event_id'])
         return post.comments.all()
-
-    def get_serializer_class(self):
-        if self.request.method == 'GET' or self.action == 'like':
-            return CommentGetSerializer
-        return CommentCreateSerializer
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            permission_classes = [permissions.AllowAny]
+            self.permission_classes = [permissions.AllowAny]
         elif self.request.method == 'PATCH' or self.request.method == 'DELETE':
-            permission_classes = [IsAdminAuthorOrReadOnly]
-        elif self.action == 'like':
-            permission_classes = [permissions.IsAuthenticated]
+            self.permission_classes = [IsAdminAuthorOrReadOnly]
         else:
-            permission_classes = [permissions.IsAuthenticated]
-        return [permission() for permission in permission_classes]
+            self.permission_classes = [permissions.IsAuthenticated]
+        return super().get_permissions()
 
     def perform_create(self, serializer):
         post = get_object_or_404(EventPost, id=self.kwargs['post_id'])
@@ -115,20 +114,19 @@ class CommentViewSet(viewsets.ModelViewSet):
     def like(self, request, **kwargs):
         comment = get_object_or_404(Comment, id=kwargs['comment_id'])
 
+        like = Like.objects.filter(user=request.user, comment=comment)
+
         if request.method == 'POST':
-            if Like.objects.filter(
-                    user=request.user, comment=comment).exists():
+            if like.exists():
                 return Response('Вы уже оценили этот комментарий.',
                                 status=status.HTTP_400_BAD_REQUEST)
             Like.objects.create(user=request.user, comment=comment)
-            return Response(data=self.get_serializer(comment).data,
+            serializer = serializer(like)
+            return Response(data=serializer.data,
                             status=status.HTTP_201_CREATED)
 
-        like = Like.objects.filter(
-                user=request.user, comment=comment).first()
-        if not like:
+        if not like.exists():
             return Response('Вы еще не оценили этот комментарий.',
                             status=status.HTTP_400_BAD_REQUEST)
         like.delete()
-        return Response(data=self.get_serializer(comment).data,
-                        status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
