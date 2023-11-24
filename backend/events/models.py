@@ -11,6 +11,11 @@ class Activity(models.Model):
         unique=True
     )
 
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Вид активности'
+        verbose_name_plural = 'Виды активностей'
+
     def __str__(self):
         return self.name
 
@@ -62,7 +67,7 @@ class EventPost(models.Model):
     )
     duration = models.PositiveIntegerField(
         validators=MinValueValidator(1),
-        verbose_name='Длительность мероприятия (мин)'
+        verbose_name='Длительность мероприятия (мин)',
     )
     location = models.CharField(
         verbose_name='Место проведения',
@@ -75,8 +80,8 @@ class EventPost(models.Model):
     )
 
     class Meta:
-        ordering = ('-id',)
-
+        ordering = ['-datetime']
+    
     def __str__(self):
         return self.name
 

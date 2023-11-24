@@ -20,40 +20,6 @@ class ActivitySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
-class EventGetSerializer(serializers.ModelSerializer):
-    """Сериализатор для просмотра постов о мероприятиях."""
-    activity = ActivitySerializer(read_only=True)
-    author = CustomUserSerializer(read_only=True)
-    is_participing = serializers.SerializerMethodField()
-    comments = serializers.SerializerMethodField()
-    participants = serializers.PrimaryKeyRelatedField(
-        read_only=True, many=True
-    )
-
-    class Meta:
-        model = EventPost
-        fields = ('id',
-                  'name',
-                  'text',
-                  'activity',
-                  'datetime',
-                  'author',
-                  'duration',
-                  'place',
-                  'is_participing',
-                  'comments',
-                  'participants')
-
-    def get_is_participing(self, event):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return user.events_participation_for_user.filter(event=event).exists()
-
-    def get_comments(self, event):
-        return event.comments.all().order_by('-id')[:3]
-
-
 class EventSerializer(serializers.ModelSerializer):
     """Сериализатор для создания и обновления постов о мероприятиях."""
     name = serializers.CharField(required=True)

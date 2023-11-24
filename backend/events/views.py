@@ -1,3 +1,5 @@
+from django.contrib.auth import get_user_model
+
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
@@ -16,6 +18,8 @@ from .serializers import (
     EventSerializer,
     CommentSerializer
 )
+
+from user.serializers import CustomUserSerializer
 
 from .permissions import IsAdminAuthorOrReadOnly
 from .pagination import CustomPaginator
@@ -39,7 +43,7 @@ class EventViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             self.permission_classes = [permissions.AllowAny]
-        elif self.request.method == 'PATCH' or self.request.method == 'DELETE':
+        elif self.request.method in ['PATCH', 'DELETE']:
             self.permission_classes = [IsAdminAuthorOrReadOnly]
         else:
             self.permission_classes = [permissions.IsAuthenticated]
@@ -50,7 +54,6 @@ class EventViewSet(viewsets.ModelViewSet):
             permission_classes=(permissions.IsAuthenticated,))
     def participate(self, request, **kwargs):
         event = get_object_or_404(EventPost, id=kwargs['event_id'])
-
         participation = Participation.objects.filter(
                 user=request.user, event=event
         )
@@ -74,11 +77,11 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=False,
             permission_classes=[permissions.IsAuthenticated, ])
     def participations(self, request):
-        subscribers_data = CustomUser.objects.filter(
+        participation_data = get_user_model().objects.filter(
             subscribers__user=request.user
         )
-        page = self.paginate_queryset(subscribers_data)
-        serializer = CustomUserContextSerializer(
+        page = self.paginate_queryset(participation_data)
+        serializer = CustomUserSerializer(
             page, many=True, context={'request': request}
         )
 
