@@ -1,5 +1,7 @@
 import datetime
 
+from django.contrib.auth import get_user_model
+
 from django_filters.rest_framework import (BooleanFilter,
                                            CharFilter,
                                            FilterSet,
@@ -21,9 +23,10 @@ class ActivityFilter(FilterSet):
 class EventPostsFilter(FilterSet):
     """Фильтр для постов по полю 'участвую', по автору поста,
     по актуальности мероприятия."""
-    author = NumberFilter(
-        field_name='author',
-        lookup_expr='exact'
+    author = ModelMultipleChoiceFilter(
+        field_name='author__username',
+        to_field_name='username',
+        queryset=get_user_model().objects.all()
     )
     activities = ModelMultipleChoiceFilter(
         field_name='activity__name',
@@ -38,22 +41,19 @@ class EventPostsFilter(FilterSet):
         field_name='activities_for_event__activity__users_for_activity',
         method='is_exist_filter'
     )
-
-    # in_my_activities = NumberFilter(
-    #     method='filter_in_my_activities'
-    # )
-
-    is_past = NumberFilter(
-        method='filter_is_past'
+    is_actual_event = NumberFilter(
+        method='is_actual_event_filter'
     )
-    is_actual = NumberFilter(
-        method='filter_is_actual'
+    is_past_event = NumberFilter(
+        method='is_past_event_filter'
     )
-    is_user_past = NumberFilter(
-        method='filter_is_user_past'
+    is_actual_participation = BooleanFilter(
+        field_name='users_participation_for_event',
+        method='is_actual_participation_filter'
     )
-    is_user_actual = NumberFilter(
-        method='filter_is_user_actual'
+    is_past_participation = BooleanFilter(
+        field_name='users_participation_for_event',
+        method='is_past_participation_filter'
     )
 
     class Meta:
@@ -65,43 +65,31 @@ class EventPostsFilter(FilterSet):
         if self.request.user.is_anonymous:
             return queryset
         return queryset.filter(**{lookup: self.request.user})
-
-    def filter_is_past(self, queryset, name, value):
-        if bool(value):
-            return queryset.filter(
-                datetime__lte=datetime.datetime.now()
-            )
-        return queryset
-
-    def filter_is_actual(self, queryset, name, value):
+    
+    def is_actual_event_filter(self, queryset, name, value):
         if bool(value):
             return queryset.filter(
                 datetime__gt=datetime.datetime.now()
             )
         return queryset
-
-    # def filter_in_my_activities(self, queryset, name, value):
-    #     activity_range = []
-    #     for activity in self.request.user.activity:
-    #         activity_range.append(activity.get('name'))
-
-    #     if bool(value):
-    #         return queryset.filter(
-    #             activity__name__range=activity_range
-    #         )
-
-    def filter_is_user_past(self, queryset, name, value):
+    
+    def is_past_event_filter(self, queryset, name, value):
         if bool(value):
             return queryset.filter(
-                datetime__lte=datetime.datetime.now(),
-                activity_for_user__user=self.request.user
+                datetime__lte=datetime.datetime.now()
             )
         return queryset
-
-    def filter_is_user_actual(self, queryset, name, value):
-        if bool(value):
-            return queryset.filter(
-                datetime__gt=datetime.datetime.now(),
-                activity_for_user__user=self.request.user
-            )
-        return queryset
+    
+    def is_actual_participation_filter(self, queryset, name, value):
+        lookup = '__'.join([name, 'user'])
+        if self.request.user.is_anonymous:
+            return queryset
+        return queryset.filter(**{lookup: self.request.user},
+                               datetime__gt=datetime.datetime.now())
+    
+    def is_past_participation_filter(self, queryset, name, value):
+        lookup = '__'.join([name, 'user'])
+        if self.request.user.is_anonymous:
+            return queryset
+        return queryset.filter(**{lookup: self.request.user},
+                               datetime__lte=datetime.datetime.now())
