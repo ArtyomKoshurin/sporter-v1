@@ -49,8 +49,8 @@ class EventViewSet(viewsets.ModelViewSet):
             self.permission_classes = [permissions.IsAuthenticated]
         return super().get_permissions()
 
-    @action(methods=['POST', 'DELETE'], detail=False,
-            url_path=r'(?P<event_id>\d+)/participate',
+    @action(methods=['POST', 'DELETE'],
+            detail=True,
             permission_classes=(permissions.IsAuthenticated,))
     def participate(self, request, **kwargs):
         event = get_object_or_404(EventPost, id=kwargs['event_id'])
