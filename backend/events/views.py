@@ -111,11 +111,11 @@ class CommentViewSet(viewsets.ModelViewSet):
         post = get_object_or_404(EventPost, id=self.kwargs['post_id'])
         serializer.save(author=self.request.user, post=post)
 
-    @action(methods=['POST', 'DELETE'], detail=False,
-            url_path=r'(?P<comment_id>\d+)/like',
+    @action(methods=['POST', 'DELETE'],
+            detail=True,
             permission_classes=(permissions.IsAuthenticated,))
-    def like(self, request, **kwargs):
-        comment = get_object_or_404(Comment, id=kwargs['comment_id'])
+    def like(self, request, pk):
+        comment = get_object_or_404(Comment, id=pk)
 
         like = Like.objects.filter(user=request.user, comment=comment)
 

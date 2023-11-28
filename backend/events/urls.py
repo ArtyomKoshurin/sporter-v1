@@ -7,10 +7,10 @@ app_name = 'events'
 
 router_events_v1 = DefaultRouter
 
-router_events_v1.register('activity', ActivityViewSet, basename='activity')
+router_events_v1.register('activities', ActivityViewSet, basename='activities')
 router_events_v1.register('events', EventViewSet, basename='events')
 router_events_v1.register(
-    r'events/(?P<post_id>\d+)/comments',
+    r'events/(?P<event_id>\d+)/comments',
     CommentViewSet,
     basename='comments'
 )
