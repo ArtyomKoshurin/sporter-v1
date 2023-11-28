@@ -6,20 +6,16 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 
-from .models import (
-    Activity,
-    EventPost,
-    Participation,
-    Comment,
-    Like
-)
-from .serializers import (
-    ActivitySerializer,
-    EventSerializer,
-    CommentSerializer
-)
+from .models import (Activity,
+                     EventPost,
+                     Participation,
+                     Comment,
+                     Like)
+from .serializers import (ActivitySerializer,
+                          EventSerializer,
+                          CommentSerializer)
 
-from user.serializers import CustomUserSerializer
+from users.serializers import CustomUserSerializer
 
 from .permissions import IsAdminAuthorOrReadOnly
 from .pagination import CustomPaginator

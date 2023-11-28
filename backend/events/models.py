@@ -66,7 +66,7 @@ class EventPost(models.Model):
         on_delete=models.CASCADE
     )
     duration = models.PositiveIntegerField(
-        validators=MinValueValidator(1),
+        validators=[MinValueValidator(1)],
         verbose_name='Длительность мероприятия (мин)',
     )
     location = models.CharField(
@@ -103,7 +103,7 @@ class ActivityForEventPost(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['event', 'activity'],
-                name='unique_activity_for_user'
+                name='unique_activity_for_event'
             )
         ]
 
