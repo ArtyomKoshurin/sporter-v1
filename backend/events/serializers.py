@@ -23,8 +23,10 @@ class ActivitySerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     """Сериализатор для создания и обновления постов о мероприятиях."""
     name = serializers.CharField(required=True)
-    activity = ActivitySerializer()
-    datetime = serializers.DateTimeField(read_only=True, format='%d.%m.%Y')
+    activity = serializers.PrimaryKeyRelatedField(
+        queryset=Activity.objects.all(), many=True
+    )
+    datetime = serializers.DateTimeField(format='%d.%m.%Y')
     author = CustomUserSerializer(
         default=serializers.CurrentUserDefault()
     )
@@ -39,13 +41,13 @@ class EventSerializer(serializers.ModelSerializer):
         model = EventPost
         fields = ('id',
                   'name',
-                  'text',
+                  'description',
                   'activity',
                   'datetime',
                   'author',
                   'duration',
                   'location',
-                  'is_participing',
+                  'is_participate',
                   'comments',
                   'participants')
 
@@ -63,22 +65,20 @@ class EventSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate(self, data):
-        activity = data.get('activity')
-        if not Activity.objects.filter(name=activity.get('name')).exists():
-            raise serializers.ValidationError(
-                {'Ошибка': 'Такого вида активности не существует.'}
-            )
+    def validate_activity(self, values_list):
+        for elem_id in values_list:
+            if not Activity.objects.filter(id=elem_id).exists():
+                raise serializers.ValidationError(
+                    {'Ошибка': 'Такого вида активности не существует.'}
+                )
+        return values_list
 
     def create(self, validated_data):
-        activity = validated_data.pop('activity')
+        activity_list = validated_data.pop('activity')
         event = EventPost.objects.create(**validated_data)
 
-        activity_name = Activity.objects.get(
-            name=activity.get('name')
-        )
-        event.activity = activity_name
-        event.save()
+        event.activity.set(activity_list)
+        # event.save()
 
         return event
 
@@ -106,15 +106,10 @@ class EventSerializer(serializers.ModelSerializer):
 
     def get_comments(self, event):
         return event.comments.all().order_by('-id')[:3]
-
-    # def to_representation(self, instance):
-    #     request = {'request': self.context.get('request')}
-    #     post_for_view = EventGetSerializer(instance, context=request)
-    #     return post_for_view.data
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['activities'] = instance.activities.values()
+        data['activity'] = instance.activity.values()
         return data
 
 

@@ -51,7 +51,7 @@ class EventPost(models.Model):
         verbose_name='Название мероприятия',
         max_length=124
     )
-    text = models.TextField(verbose_name='Описание мероприятия')
+    description = models.TextField(verbose_name='Описание мероприятия')
     activity = models.ManyToManyField(
         Activity,
         through='ActivityForEventPost',
