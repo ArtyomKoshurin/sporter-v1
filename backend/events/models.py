@@ -34,6 +34,7 @@ class FavoriteActivity(models.Model):
     )
 
     class Meta:
+        verbose_name_plural = 'Избранные активности пользователей'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'activity'],
@@ -66,7 +67,6 @@ class EventPost(models.Model):
         on_delete=models.CASCADE
     )
     duration = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
         verbose_name='Длительность мероприятия (мин)',
     )
     location = models.CharField(
@@ -81,6 +81,8 @@ class EventPost(models.Model):
 
     class Meta:
         ordering = ['-datetime']
+        verbose_name = 'Мероприятие'
+        verbose_name_plural = 'Мероприятия'
     
     def __str__(self):
         return self.name
@@ -100,6 +102,7 @@ class ActivityForEventPost(models.Model):
     )
 
     class Meta:
+        verbose_name_plural = 'Активность - Мероприятие'
         constraints = [
             models.UniqueConstraint(
                 fields=['event', 'activity'],
@@ -119,10 +122,7 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name='comments'
     )
-    text = models.TextField(
-        verbose_name='Текст',
-        validators=[MinValueValidator(1), MaxValueValidator(2000)]
-    )
+    text = models.TextField(verbose_name='Текст')
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name='Автор комментария',
@@ -142,6 +142,11 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ['-id']
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.text
 
 
 class Participation(models.Model):
@@ -160,6 +165,7 @@ class Participation(models.Model):
     )
 
     class Meta:
+        verbose_name_plural = 'Мероприятие - Участник'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'event'],
@@ -188,6 +194,8 @@ class Like(models.Model):
     )
 
     class Meta:
+        verbose_name = 'Лайк'
+        verbose_name_plural = 'Лайки'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'comment'],

@@ -5,6 +5,7 @@ from .models import (Activity,
                      Comment,
                      EventPost,
                      FavoriteActivity,
+                     Like,
                      Participation)
 
 class ActivityInEventPost(admin.TabularInline):
@@ -69,3 +70,9 @@ class EventPostAdmin(admin.ModelAdmin):
 class ParticipationAdmin(admin.ModelAdmin):
     list_display = ('id', 'event', 'user')
     list_filter = ('event',)
+
+
+@admin.register(Like)
+class LikeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'comment', 'user')
+    list_filter = ('comment',)

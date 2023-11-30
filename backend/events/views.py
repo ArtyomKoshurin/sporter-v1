@@ -97,8 +97,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     @action(methods=['POST', 'DELETE'],
             detail=True,
             permission_classes=(permissions.IsAuthenticated,))
-    def like(self, request, pk):
-        comment = get_object_or_404(Comment, id=pk)
+    def like(self, request, event_id, pk):
+        event = get_object_or_404(EventPost, id=event_id)
+        comment = event.comments.get(id=pk)
         like = Like.objects.filter(user=request.user, comment=comment)
 
         if request.method == 'POST':
@@ -106,7 +107,7 @@ class CommentViewSet(viewsets.ModelViewSet):
                 return Response('Вы уже оценили этот комментарий.',
                                 status=status.HTTP_400_BAD_REQUEST)
             Like.objects.create(user=request.user, comment=comment)
-            serializer = CommentSerializer(like)
+            serializer = CommentSerializer(like, {'request': request})
             return Response(data=serializer.data,
                             status=status.HTTP_201_CREATED)
 
