@@ -107,7 +107,8 @@ class CommentViewSet(viewsets.ModelViewSet):
                 return Response('Вы уже оценили этот комментарий.',
                                 status=status.HTTP_400_BAD_REQUEST)
             Like.objects.create(user=request.user, comment=comment)
-            serializer = CommentSerializer(like, {'request': request})
+            serializer = CommentSerializer(comment, context={'request': request})
+            
             return Response(data=serializer.data,
                             status=status.HTTP_201_CREATED)
 
