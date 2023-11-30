@@ -48,8 +48,8 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(methods=['POST', 'DELETE'],
             detail=True,
             permission_classes=(permissions.IsAuthenticated,))
-    def participate(self, request, **kwargs):
-        event = get_object_or_404(EventPost, id=kwargs['event_id'])
+    def participate(self, request, pk):
+        event = get_object_or_404(EventPost, id=pk)
         participation = Participation.objects.filter(
                 user=request.user, event=event
         )
@@ -59,29 +59,16 @@ class EventViewSet(viewsets.ModelViewSet):
                 return Response('Вы уже идете на это мероприятие.',
                                 status=status.HTTP_400_BAD_REQUEST)
             Participation.objects.create(user=request.user, event=event)
-            serializer = serializer(event)
+            serializer = EventSerializer(event, context={'request': request})
             return Response(data=serializer.data,
                             status=status.HTTP_201_CREATED)
-
         if not participation.exists():
-            return Response('Вы еще не подписались '
-                            'на участие в данном мероприятии',
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                'Вы еще не подписались на участие в данном мероприятии',
+                status=status.HTTP_400_BAD_REQUEST
+            )
         participation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-    @action(detail=False,
-            permission_classes=[permissions.IsAuthenticated, ])
-    def participations(self, request):
-        participation_data = get_user_model().objects.filter(
-            subscribers__user=request.user
-        )
-        page = self.paginate_queryset(participation_data)
-        serializer = CustomUserSerializer(
-            page, many=True, context={'request': request}
-        )
-
-        return self.get_paginated_response(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -104,15 +91,14 @@ class CommentViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def perform_create(self, serializer):
-        post = get_object_or_404(EventPost, id=self.kwargs['post_id'])
-        serializer.save(author=self.request.user, post=post)
+        event = get_object_or_404(EventPost, id=self.kwargs['event_id'])
+        serializer.save(author=self.request.user, event=event)
 
     @action(methods=['POST', 'DELETE'],
             detail=True,
             permission_classes=(permissions.IsAuthenticated,))
     def like(self, request, pk):
         comment = get_object_or_404(Comment, id=pk)
-
         like = Like.objects.filter(user=request.user, comment=comment)
 
         if request.method == 'POST':
@@ -120,7 +106,7 @@ class CommentViewSet(viewsets.ModelViewSet):
                 return Response('Вы уже оценили этот комментарий.',
                                 status=status.HTTP_400_BAD_REQUEST)
             Like.objects.create(user=request.user, comment=comment)
-            serializer = serializer(like)
+            serializer = CommentSerializer(like)
             return Response(data=serializer.data,
                             status=status.HTTP_201_CREATED)
 
