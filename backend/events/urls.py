@@ -1,11 +1,11 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework import routers
 
 from .views import ActivityViewSet, EventViewSet, CommentViewSet
 
 app_name = 'events'
 
-router_events_v1 = DefaultRouter
+router_events_v1 = routers.DefaultRouter()
 
 router_events_v1.register('activities', ActivityViewSet, basename='activities')
 router_events_v1.register('events', EventViewSet, basename='events')

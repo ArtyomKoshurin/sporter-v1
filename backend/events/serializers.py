@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from rest_framework import serializers
 
 from .models import (
@@ -23,15 +25,17 @@ class ActivitySerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     """Сериализатор для создания и обновления постов о мероприятиях."""
     name = serializers.CharField(required=True)
-    activity = ActivitySerializer()
-    datetime = serializers.DateTimeField(read_only=True, format='%d.%m.%Y')
+    activity = serializers.PrimaryKeyRelatedField(
+        queryset=Activity.objects.all(), many=True
+    )
+    datetime = serializers.DateTimeField(format='%d.%m.%Y')
     author = CustomUserSerializer(
         default=serializers.CurrentUserDefault()
     )
     duration = serializers.IntegerField(required=True)
     is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
-    participants = serializers.PrimaryKeyRelatedField(
+    participants = CustomUserSerializer(
         read_only=True, many=True
     )
 
@@ -39,13 +43,13 @@ class EventSerializer(serializers.ModelSerializer):
         model = EventPost
         fields = ('id',
                   'name',
-                  'text',
+                  'description',
                   'activity',
                   'datetime',
                   'author',
                   'duration',
                   'location',
-                  'is_participing',
+                  'is_participate',
                   'comments',
                   'participants')
 
@@ -64,38 +68,36 @@ class EventSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        activity = data.get('activity')
-        if not Activity.objects.filter(name=activity.get('name')).exists():
+        activities_list = self.initial_data.get('activity')
+        if activities_list:
+            for elem_id in activities_list:
+                if not Activity.objects.filter(id=elem_id).exists():
+                    raise serializers.ValidationError(
+                        'Такого вида активности не существует.'
+                    )
+        else:
             raise serializers.ValidationError(
-                {'Ошибка': 'Такого вида активности не существует.'}
+                'Необходимо указать минимум один вид активности!'
             )
+        
+        return data
 
+    @transaction.atomic
     def create(self, validated_data):
-        activity = validated_data.pop('activity')
+        activity_list = validated_data.pop('activity')
         event = EventPost.objects.create(**validated_data)
-
-        activity_name = Activity.objects.get(
-            name=activity.get('name')
-        )
-        event.activity = activity_name
-        event.save()
-
+        event.activity.set(activity_list)
         return event
 
+    @transaction.atomic
     def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.duration = validated_data.get('duration', instance.duration)
-        instance.datetime = validated_data.get('datetime', instance.datetime)
-        instance.location = validated_data.get('location', instance.place)
-        activity = validated_data.pop('activity')
-        instance.activity.clear()
-        activity_name = Activity.objects.get_or_create(
-            name=activity.get('name')
-        )
-        instance.activity = activity_name
+        activity_list = validated_data.pop('activity', instance.activity)
+        
+        instance = super().update(instance, validated_data)
         instance.save()
-
+        instance.activity.clear()
+        instance.activity.set(activity_list)
+        
         return instance
     
     def get_is_participate(self, event):
@@ -107,14 +109,9 @@ class EventSerializer(serializers.ModelSerializer):
     def get_comments(self, event):
         return event.comments.all().order_by('-id')[:3]
 
-    # def to_representation(self, instance):
-    #     request = {'request': self.context.get('request')}
-    #     post_for_view = EventGetSerializer(instance, context=request)
-    #     return post_for_view.data
-    
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['activities'] = instance.activities.values()
+        data['activity'] = instance.activity.values()
         return data
 
 
