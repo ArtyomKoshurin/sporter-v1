@@ -12,6 +12,8 @@ from .models import CustomUser, Subscribe
 
 from .utils import create_relation, delete_relation
 
+from .permissions import IsAdminAuthorOrReadOnly
+
 
 class CustomUserViewSet(UserViewSet):
     """Кастомный вьюсет Пользователя."""
@@ -22,6 +24,8 @@ class CustomUserViewSet(UserViewSet):
     def get_permissions(self):
         if self.action == 'me':
             self.permission_classes = [permissions.IsAuthenticated, ]
+        elif self.request.method in ['PATCH', 'DELETE']:
+            self.permission_classes = [IsAdminAuthorOrReadOnly, ]
         return super().get_permissions()
 
     @action(methods=['post', 'delete'],

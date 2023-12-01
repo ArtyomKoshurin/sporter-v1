@@ -5,12 +5,8 @@ from rest_framework import serializers
 from .models import (
     Activity,
     EventPost,
-    Participation,
-    Comment,
-    Like
+    Comment
 )
-
-from users.models import CustomUser
 
 from users.serializers import CustomUserSerializer
 
@@ -79,7 +75,7 @@ class EventSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Необходимо указать минимум один вид активности!'
             )
-        
+
         return data
 
     @transaction.atomic
@@ -92,14 +88,14 @@ class EventSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         activity_list = validated_data.pop('activity', instance.activity)
-        
+
         instance = super().update(instance, validated_data)
         instance.save()
         instance.activity.clear()
         instance.activity.set(activity_list)
-        
+
         return instance
-    
+
     def get_is_participate(self, event):
         user = self.context['request'].user
         if user.is_anonymous:
@@ -140,7 +136,7 @@ class CommentSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
-    
+
     def get_is_liked(self, comment):
         user = self.context['request'].user
         if user.is_anonymous:

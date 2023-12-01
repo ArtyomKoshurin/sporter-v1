@@ -5,6 +5,8 @@ from django.utils.translation import gettext_lazy as _
 
 from phonenumber_field.modelfields import PhoneNumberField
 
+from events.models import Activity
+
 
 class CustomUser(AbstractUser):
     """Кастомная модель пользователя."""
@@ -38,6 +40,10 @@ class CustomUser(AbstractUser):
         'О себе',
         null=True,
         blank=True
+    )
+    activity = models.ManyToManyField(
+        Activity,
+        related_name='user_activity'
     )
 
     USERNAME_FIELD = 'email'

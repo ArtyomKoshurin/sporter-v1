@@ -1,5 +1,3 @@
-from django.contrib.auth import get_user_model
-
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
@@ -9,13 +7,10 @@ from rest_framework.pagination import PageNumberPagination
 from .models import (Activity,
                      EventPost,
                      Participation,
-                     Comment,
                      Like)
 from .serializers import (ActivitySerializer,
                           EventSerializer,
                           CommentSerializer)
-
-from users.serializers import CustomUserSerializer
 
 from .permissions import IsAdminAuthorOrReadOnly
 from .pagination import CustomPaginator
@@ -107,8 +102,9 @@ class CommentViewSet(viewsets.ModelViewSet):
                 return Response('Вы уже оценили этот комментарий.',
                                 status=status.HTTP_400_BAD_REQUEST)
             Like.objects.create(user=request.user, comment=comment)
-            serializer = CommentSerializer(comment, context={'request': request})
-            
+            serializer = CommentSerializer(comment,
+                                           context={'request': request})
+
             return Response(data=serializer.data,
                             status=status.HTTP_201_CREATED)
 
