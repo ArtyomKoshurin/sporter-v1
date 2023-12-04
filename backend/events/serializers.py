@@ -5,7 +5,8 @@ from rest_framework import serializers
 from .models import (
     Activity,
     EventPost,
-    Comment
+    Comment,
+    Participation
 )
 
 from users.serializers import CustomUserSerializer
@@ -16,99 +17,6 @@ class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
         fields = ('id', 'name')
-
-
-class EventSerializer(serializers.ModelSerializer):
-    """Сериализатор для создания и обновления постов о мероприятиях."""
-    name = serializers.CharField(required=True)
-    activity = serializers.PrimaryKeyRelatedField(
-        queryset=Activity.objects.all(), many=True
-    )
-    datetime = serializers.DateTimeField(format='%d.%m.%Y')
-    author = CustomUserSerializer(
-        default=serializers.CurrentUserDefault()
-    )
-    duration = serializers.IntegerField(required=True)
-    is_participate = serializers.SerializerMethodField()
-    comments = serializers.SerializerMethodField()
-    participants = CustomUserSerializer(
-        read_only=True, many=True
-    )
-
-    class Meta:
-        model = EventPost
-        fields = ('id',
-                  'name',
-                  'description',
-                  'activity',
-                  'datetime',
-                  'author',
-                  'duration',
-                  'location',
-                  'is_participate',
-                  'comments',
-                  'participants')
-
-    def validate_name(self, value):
-        if len(value) > 124:
-            raise serializers.ValidationError(
-                'Название мероприятия не должно превышать 124 символов.'
-            )
-        return value
-
-    def validate_duration(self, value):
-        if value <= 0:
-            raise serializers.ValidationError(
-                'Введите корректную длительность мероприятия.'
-            )
-        return value
-
-    def validate(self, data):
-        activities_list = self.initial_data.get('activity')
-        if activities_list:
-            for elem_id in activities_list:
-                if not Activity.objects.filter(id=elem_id).exists():
-                    raise serializers.ValidationError(
-                        'Такого вида активности не существует.'
-                    )
-        else:
-            raise serializers.ValidationError(
-                'Необходимо указать минимум один вид активности!'
-            )
-
-        return data
-
-    @transaction.atomic
-    def create(self, validated_data):
-        activity_list = validated_data.pop('activity')
-        event = EventPost.objects.create(**validated_data)
-        event.activity.set(activity_list)
-        return event
-
-    @transaction.atomic
-    def update(self, instance, validated_data):
-        activity_list = validated_data.pop('activity', instance.activity)
-
-        instance = super().update(instance, validated_data)
-        instance.save()
-        instance.activity.clear()
-        instance.activity.set(activity_list)
-
-        return instance
-
-    def get_is_participate(self, event):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return user.events_participation_for_user.filter(event=event).exists()
-
-    def get_comments(self, event):
-        return event.comments.all().order_by('-id')[:3]
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['activity'] = instance.activity.values()
-        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -145,3 +53,106 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_likes_count(self, comment):
         return comment.users_for_liked_comment.all().count()
+
+
+class EventSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания и обновления постов о мероприятиях."""
+    name = serializers.CharField(required=True)
+    activity = serializers.PrimaryKeyRelatedField(
+        queryset=Activity.objects.all(), many=True
+    )
+    datetime = serializers.DateTimeField(format='%d.%m.%Y')
+    author = CustomUserSerializer(
+        default=serializers.CurrentUserDefault()
+    )
+    duration = serializers.IntegerField(required=True)
+    is_participate = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
+    participants = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EventPost
+        fields = ('id',
+                  'name',
+                  'description',
+                  'activity',
+                  'datetime',
+                  'author',
+                  'duration',
+                  'location',
+                  'comments',
+                  'is_participate',
+                  'participants')
+
+    def validate_name(self, value):
+        if len(value) > 124:
+            raise serializers.ValidationError(
+                'Название мероприятия не должно превышать 124 символов.'
+            )
+        return value
+
+    def validate_duration(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                'Введите корректную длительность мероприятия.'
+            )
+        return value
+
+    def validate(self, data):
+        activities_list = self.initial_data.get('activity')
+        if activities_list:
+            for elem_id in activities_list:
+                if not Activity.objects.filter(id=elem_id).exists():
+                    raise serializers.ValidationError(
+                        'Такого вида активности не существует.'
+                    )
+        else:
+            raise serializers.ValidationError(
+                'Необходимо указать минимум один вид активности!'
+            )
+
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        user = self.context['request'].user
+        activity_list = validated_data.pop('activity')
+        event = EventPost.objects.create(**validated_data)
+        event.activity.set(activity_list)
+        Participation.objects.create(event=event, user=user)
+        return event
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        activity_list = validated_data.pop('activity', instance.activity)
+
+        instance = super().update(instance, validated_data)
+        instance.save()
+        instance.activity.clear()
+        instance.activity.set(activity_list)
+
+        return instance
+
+    def get_is_participate(self, event):
+        user = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return user.events_participation_for_user.filter(event=event).exists()
+
+    def get_participants(self, event):
+        return event.users_participation_for_event.all().count()
+
+    def get_comments(self, event):
+        request = self.context.get('request')
+        event = event.comments.all().order_by('-id')[:3]
+        serializer = CommentSerializer(
+            event,
+            context={'request': request},
+            many=True
+        )
+        return serializer.data
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['activity'] = instance.activity.values()
+        return data

@@ -1,3 +1,4 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.generics import get_object_or_404
@@ -14,6 +15,7 @@ from .serializers import (ActivitySerializer,
 
 from .permissions import IsAdminAuthorOrReadOnly
 from .pagination import CustomPaginator
+from .filters import EventPostsFilter, ActivityFilter
 
 
 class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
@@ -22,6 +24,8 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ActivitySerializer
     pagination_class = None
     permission_classes = (permissions.AllowAny,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = ActivityFilter
 
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -30,6 +34,8 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = PageNumberPagination
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = EventPostsFilter
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -63,7 +69,8 @@ class EventViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         participation.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(data=self.get_serializer(event).data,
+                        status=status.HTTP_204_NO_CONTENT)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -112,4 +119,5 @@ class CommentViewSet(viewsets.ModelViewSet):
             return Response('Вы еще не оценили этот комментарий.',
                             status=status.HTTP_400_BAD_REQUEST)
         like.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(data=self.get_serializer(comment).data,
+                        status=status.HTTP_204_NO_CONTENT)
