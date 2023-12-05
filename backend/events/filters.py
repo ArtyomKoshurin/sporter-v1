@@ -65,28 +65,28 @@ class EventPostsFilter(FilterSet):
         if self.request.user.is_anonymous:
             return queryset
         return queryset.filter(**{lookup: self.request.user})
-    
+
     def is_actual_event_filter(self, queryset, name, value):
         if bool(value):
             return queryset.filter(
                 datetime__gt=datetime.datetime.now()
             )
         return queryset
-    
+
     def is_past_event_filter(self, queryset, name, value):
         if bool(value):
             return queryset.filter(
                 datetime__lte=datetime.datetime.now()
             )
         return queryset
-    
+
     def is_actual_participation_filter(self, queryset, name, value):
         lookup = '__'.join([name, 'user'])
         if self.request.user.is_anonymous:
             return queryset
         return queryset.filter(**{lookup: self.request.user},
                                datetime__gt=datetime.datetime.now())
-    
+
     def is_past_participation_filter(self, queryset, name, value):
         lookup = '__'.join([name, 'user'])
         if self.request.user.is_anonymous:

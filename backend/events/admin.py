@@ -8,6 +8,7 @@ from .models import (Activity,
                      Like,
                      Participation)
 
+
 class ActivityInEventPost(admin.TabularInline):
     model = ActivityForEventPost
     min_num = 1

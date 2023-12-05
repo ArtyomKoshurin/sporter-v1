@@ -5,12 +5,9 @@ from rest_framework import serializers
 from .models import (
     Activity,
     EventPost,
-    Participation,
     Comment,
-    Like
+    Participation
 )
-
-from users.models import CustomUser
 
 from users.serializers import CustomUserSerializer
 
@@ -20,6 +17,42 @@ class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
         fields = ('id', 'name')
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания комментария к посту."""
+    author = CustomUserSerializer(
+        default=serializers.CurrentUserDefault()
+    )
+    pub_date = serializers.DateTimeField(read_only=True, format='%d.%m.%Y')
+    event = serializers.PrimaryKeyRelatedField(read_only=True)
+    is_liked = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ('id',
+                  'author',
+                  'text',
+                  'pub_date',
+                  'event',
+                  'is_liked',
+                  'likes_count')
+
+    def update(self, instance, validated_data):
+        instance.text = validated_data.get('text', instance.text)
+        instance.save()
+
+        return instance
+
+    def get_is_liked(self, comment):
+        user = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return comment.users_for_liked_comment.filter(user=user).exists()
+
+    def get_likes_count(self, comment):
+        return comment.users_for_liked_comment.all().count()
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -35,9 +68,7 @@ class EventSerializer(serializers.ModelSerializer):
     duration = serializers.IntegerField(required=True)
     is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
-    participants = CustomUserSerializer(
-        read_only=True, many=True
-    )
+    participants = serializers.SerializerMethodField()
 
     class Meta:
         model = EventPost
@@ -49,8 +80,8 @@ class EventSerializer(serializers.ModelSerializer):
                   'author',
                   'duration',
                   'location',
-                  'is_participate',
                   'comments',
+                  'is_participate',
                   'participants')
 
     def validate_name(self, value):
@@ -79,73 +110,49 @@ class EventSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Необходимо указать минимум один вид активности!'
             )
-        
+
         return data
 
     @transaction.atomic
     def create(self, validated_data):
+        user = self.context['request'].user
         activity_list = validated_data.pop('activity')
         event = EventPost.objects.create(**validated_data)
         event.activity.set(activity_list)
+        Participation.objects.create(event=event, user=user)
         return event
 
     @transaction.atomic
     def update(self, instance, validated_data):
         activity_list = validated_data.pop('activity', instance.activity)
-        
+
         instance = super().update(instance, validated_data)
         instance.save()
         instance.activity.clear()
         instance.activity.set(activity_list)
-        
+
         return instance
-    
+
     def get_is_participate(self, event):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
         return user.events_participation_for_user.filter(event=event).exists()
 
+    def get_participants(self, event):
+        return event.users_participation_for_event.all().count()
+
     def get_comments(self, event):
-        return event.comments.all().order_by('-id')[:3]
+        request = self.context.get('request')
+        event = event.comments.all().order_by('-id')[:3]
+        serializer = CommentSerializer(
+            event,
+            context={'request': request},
+            many=True
+        )
+        return serializer.data
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['activity'] = instance.activity.values()
         return data
-
-
-class CommentSerializer(serializers.ModelSerializer):
-    """Сериализатор для создания комментария к посту."""
-    author = CustomUserSerializer(
-        default=serializers.CurrentUserDefault()
-    )
-    pub_date = serializers.DateTimeField(read_only=True, format='%d.%m.%Y')
-    event = serializers.PrimaryKeyRelatedField(read_only=True)
-    is_liked = serializers.SerializerMethodField()
-    likes_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Comment
-        fields = ('id',
-                  'author',
-                  'text',
-                  'pub_date',
-                  'event',
-                  'is_liked',
-                  'likes_count')
-
-    def update(self, instance, validated_data):
-        instance.text = validated_data.get('text', instance.text)
-        instance.save()
-
-        return instance
-    
-    def get_is_liked(self, comment):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            return False
-        return comment.users_for_liked_comment.filter(user=user).exists()
-
-    def get_likes_count(self, comment):
-        return comment.users_for_liked_comment.all().count()

@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Activity(models.Model):
@@ -18,32 +17,6 @@ class Activity(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class FavoriteActivity(models.Model):
-    """Вспомогательная модель любимых видов спорта пользователя."""
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name='activities_for_user',
-        on_delete=models.CASCADE
-    )
-    activity = models.ForeignKey(
-        Activity,
-        related_name='users_for_activity',
-        on_delete=models.CASCADE
-    )
-
-    class Meta:
-        verbose_name_plural = 'Избранные активности пользователей'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'activity'],
-                name='unique_activity_for_user'
-            )
-        ]
-
-    def __str__(self):
-        return f'{self.user}: {self.activity}'
 
 
 class EventPost(models.Model):
@@ -83,7 +56,7 @@ class EventPost(models.Model):
         ordering = ['-datetime']
         verbose_name = 'Мероприятие'
         verbose_name_plural = 'Мероприятия'
-    
+
     def __str__(self):
         return self.name
 
@@ -206,3 +179,29 @@ class Like(models.Model):
     def __str__(self):
         return (f'Пользователь {self.user.username} оценил комментарий'
                 f'{self.comment}')
+
+
+class FavoriteActivity(models.Model):
+    """Вспомогательная модель любимых видов спорта пользователя."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='activities_for_user',
+        on_delete=models.CASCADE
+    )
+    activity = models.ForeignKey(
+        Activity,
+        related_name='users_for_activity',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name_plural = 'Избранные активности пользователей'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'activity'],
+                name='unique_activity_for_user'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user}: {self.activity}'
