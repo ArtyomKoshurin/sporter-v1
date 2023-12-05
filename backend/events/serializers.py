@@ -9,7 +9,7 @@ from .models import (
     Participation
 )
 
-from users.serializers import CustomUserSerializer, CustomUserContextSerializer
+from users.serializers import CustomUserContextSerializer
 
 
 class ActivitySerializer(serializers.ModelSerializer):
