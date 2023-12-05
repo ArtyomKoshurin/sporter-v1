@@ -7,8 +7,10 @@ from rest_framework.pagination import PageNumberPagination
 
 from .models import (Activity,
                      EventPost,
+                     FavoriteEvent,
                      Participation,
                      Like)
+
 from .serializers import (ActivitySerializer,
                           EventSerializer,
                           CommentSerializer)
@@ -16,6 +18,7 @@ from .serializers import (ActivitySerializer,
 from .permissions import IsAdminAuthorOrReadOnly
 from .pagination import CustomPaginator
 from .filters import EventPostsFilter, ActivityFilter
+from users.utils import create_relation, delete_relation
 
 
 class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
@@ -45,32 +48,40 @@ class EventViewSet(viewsets.ModelViewSet):
         else:
             self.permission_classes = [permissions.IsAuthenticated]
         return super().get_permissions()
+    
+    @action(methods=['POST', 'DELETE'],
+            detail=True,
+            permission_classes=(permissions.IsAuthenticated,))
+    def favorite(self, request, pk):
+        if request.method == 'POST':
+            return create_relation(request,
+                                   EventPost,
+                                   FavoriteEvent,
+                                   pk,
+                                   EventSerializer,
+                                   'event')
+        return delete_relation(request,
+                               EventPost,
+                               FavoriteEvent,
+                               pk,
+                               'event')
 
     @action(methods=['POST', 'DELETE'],
             detail=True,
             permission_classes=(permissions.IsAuthenticated,))
     def participate(self, request, pk):
-        event = get_object_or_404(EventPost, id=pk)
-        participation = Participation.objects.filter(
-                user=request.user, event=event
-        )
-
         if request.method == 'POST':
-            if participation.exists():
-                return Response('Вы уже идете на это мероприятие.',
-                                status=status.HTTP_400_BAD_REQUEST)
-            Participation.objects.create(user=request.user, event=event)
-            serializer = EventSerializer(event, context={'request': request})
-            return Response(data=serializer.data,
-                            status=status.HTTP_201_CREATED)
-        if not participation.exists():
-            return Response(
-                'Вы еще не подписались на участие в данном мероприятии',
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        participation.delete()
-        return Response(data=self.get_serializer(event).data,
-                        status=status.HTTP_204_NO_CONTENT)
+            return create_relation(request,
+                                   EventPost,
+                                   Participation,
+                                   pk,
+                                   EventSerializer,
+                                   'event')
+        return delete_relation(request,
+                               EventPost,
+                               Participation,
+                               pk,
+                               'event')
 
 
 class CommentViewSet(viewsets.ModelViewSet):

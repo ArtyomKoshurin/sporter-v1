@@ -5,6 +5,7 @@ from .models import (Activity,
                      Comment,
                      EventPost,
                      FavoriteActivity,
+                     FavoriteEvent,
                      Like,
                      Participation)
 
@@ -65,6 +66,12 @@ class EventPostAdmin(admin.ModelAdmin):
     empty_value_display = '-пусто-'
 
     inlines = [ActivityInEventPost, InParticipation]
+
+
+@admin.register(FavoriteEvent)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ('id', 'event', 'user' )
+    list_filter = ('event',)
 
 
 @admin.register(Participation)

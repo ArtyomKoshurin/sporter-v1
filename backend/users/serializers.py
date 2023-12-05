@@ -53,8 +53,9 @@ class RegisterUserSerializer(UserCreateSerializer):
         return data
 
     def validate_birth_year(self, value):
-        if value >= datetime.datetime.now().year:
-            raise ValidationError('Некорректный формат данных')
+        if (value >= datetime.datetime.now().year
+            or 120 < (datetime.datetime.now().year - value) < 5):
+            raise ValidationError('Проверьте возраст.')
         return value
 
 
@@ -87,10 +88,9 @@ class CustomUserSerializer(UserSerializer):
                   )
 
     def validate_birth_year(self, value):
-        if (datetime.datetime.now().year - value) > 120:
-            raise serializers.ValidationError(
-                'Проверьте возраст.'
-            )
+        if (value >= datetime.datetime.now().year
+            or 120 < (datetime.datetime.now().year - value) < 5):
+            raise ValidationError('Проверьте возраст.')
         return value
 
     def get_age(self, user):
@@ -128,3 +128,12 @@ class CustomUserSerializer(UserSerializer):
         instance.save()
 
         return instance
+
+
+class CustomUserContextSerializer(CustomUserSerializer):
+    """ Кастомный сериализатор для отображения профиля пользователя
+    в других контекстах."""
+
+    class Meta:
+        model = CustomUser
+        fields = ('id', 'username')

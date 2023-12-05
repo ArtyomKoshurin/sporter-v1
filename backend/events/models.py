@@ -120,6 +120,35 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.text
+    
+
+class FavoriteEvent(models.Model):
+    """Модель избранных мероприятий."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Участник',
+        related_name='favorite_for_user',
+        on_delete=models.CASCADE
+    )
+    event = models.ForeignKey(
+        EventPost,
+        verbose_name='Мероприятие',
+        related_name='users_favorite_for_event',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name_plural = 'Избранные мероприятия'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'event'],
+                name='unique_favorite'
+            )
+        ]
+
+    def __str__(self):
+        return (f'Мероприятие {self.event} в избранном у пользователя  '
+                f'{self.user.username}')
 
 
 class Participation(models.Model):
@@ -138,7 +167,7 @@ class Participation(models.Model):
     )
 
     class Meta:
-        verbose_name_plural = 'Мероприятие - Участник'
+        verbose_name_plural = 'Участие в мероприятиях'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'event'],

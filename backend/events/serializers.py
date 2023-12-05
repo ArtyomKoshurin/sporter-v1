@@ -9,7 +9,7 @@ from .models import (
     Participation
 )
 
-from users.serializers import CustomUserSerializer
+from users.serializers import CustomUserSerializer, CustomUserContextSerializer
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -21,7 +21,7 @@ class ActivitySerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор для создания комментария к посту."""
-    author = CustomUserSerializer(
+    author = CustomUserContextSerializer(
         default=serializers.CurrentUserDefault()
     )
     pub_date = serializers.DateTimeField(read_only=True, format='%d.%m.%Y')
@@ -62,13 +62,13 @@ class EventSerializer(serializers.ModelSerializer):
         queryset=Activity.objects.all(), many=True
     )
     datetime = serializers.DateTimeField(format='%d.%m.%Y')
-    author = CustomUserSerializer(
+    author = CustomUserContextSerializer(
         default=serializers.CurrentUserDefault()
     )
     duration = serializers.IntegerField(required=True)
     is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
-    participants = serializers.SerializerMethodField()
+    participants_count = serializers.SerializerMethodField()
 
     class Meta:
         model = EventPost
@@ -82,7 +82,7 @@ class EventSerializer(serializers.ModelSerializer):
                   'location',
                   'comments',
                   'is_participate',
-                  'participants')
+                  'participants_count')
 
     def validate_name(self, value):
         if len(value) > 124:
@@ -125,12 +125,10 @@ class EventSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         activity_list = validated_data.pop('activity', instance.activity)
-
         instance = super().update(instance, validated_data)
         instance.save()
         instance.activity.clear()
         instance.activity.set(activity_list)
-
         return instance
 
     def get_is_participate(self, event):
@@ -139,7 +137,7 @@ class EventSerializer(serializers.ModelSerializer):
             return False
         return user.events_participation_for_user.filter(event=event).exists()
 
-    def get_participants(self, event):
+    def get_participants_count(self, event):
         return event.users_participation_for_event.all().count()
 
     def get_comments(self, event):
