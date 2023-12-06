@@ -62,7 +62,7 @@ class EventPost(models.Model):
 
 
 class ActivityForEventPost(models.Model):
-    """Вспомогательная модель для связи 'вид спорта-юзер'."""
+    """Вспомогательная модель для связи 'вид спорта-мероприятие'."""
     event = models.ForeignKey(
         EventPost,
         related_name='activities_for_event',
@@ -85,6 +85,33 @@ class ActivityForEventPost(models.Model):
 
     def __str__(self):
         return f'{self.event}: {self.activity}'
+    
+
+class ActivityForUser(models.Model):
+    """Вспомогательная модель для связи 'вид спорта-пользователь'."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='activities_for_user',
+        on_delete=models.CASCADE
+    )
+    activity = models.ForeignKey(
+        Activity,
+        related_name='users_for_activity',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name_plural = 'Активность - Пользователь'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'activity'],
+                name='unique_activity_for_user'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user}: {self.activity}'
+
 
 
 class Comment(models.Model):

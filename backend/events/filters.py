@@ -33,14 +33,18 @@ class EventPostsFilter(FilterSet):
         to_field_name='name',
         queryset=Activity.objects.all()
     )
+    in_my_recomendation_list = BooleanFilter(
+        field_name='activities_for_event',
+        method='is_recommended_event'
+    )
     in_my_participation_list = BooleanFilter(
         field_name='users_participation_for_event',
         method='is_exist_filter'
     )
-    in_my_activities = BooleanFilter(
-        field_name='activities_for_event__activity__users_for_activity',
-        method='is_exist_filter'
-    )
+    # in_my_activities = BooleanFilter(
+    #     field_name='activities_for_event__activity__users_for_activity',
+    #     method='is_exist_filter'
+    # )
     is_actual_event = NumberFilter(
         method='is_actual_event_filter'
     )
@@ -65,6 +69,15 @@ class EventPostsFilter(FilterSet):
         if self.request.user.is_anonymous:
             return queryset
         return queryset.filter(**{lookup: self.request.user})
+    
+    def is_recommended_event(self, queryset, name, value):
+        lookup = '__'.join([name, 'activity'])
+        activity_for_user = self.request.user.activity
+        if self.request.user.is_anonymous:
+            return queryset
+        return queryset.filter(**{lookup: self.request.user})
+
+
 
     def is_actual_event_filter(self, queryset, name, value):
         if bool(value):
