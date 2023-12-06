@@ -51,7 +51,7 @@ class EventViewSet(viewsets.ModelViewSet):
     
     @action(methods=['POST', 'DELETE'],
             detail=True,
-            permission_classes=(permissions.IsAuthenticated,))
+            permission_classes=[permissions.IsAuthenticated, ])
     def favorite(self, request, pk):
         if request.method == 'POST':
             return create_relation(request,
@@ -68,7 +68,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(methods=['POST', 'DELETE'],
             detail=True,
-            permission_classes=(permissions.IsAuthenticated,))
+            permission_classes=[permissions.IsAuthenticated, ])
     def participate(self, request, pk):
         if request.method == 'POST':
             return create_relation(request,
