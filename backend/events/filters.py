@@ -37,10 +37,6 @@ class EventFilter(FilterSet):
         field_name='users_participation_for_event',
         method='is_exist_filter'
     )
-    # in_my_activities = BooleanFilter(
-    #     field_name='activities_for_event__activity__users_for_activity',
-    #     method='is_exist_filter'
-    # )
     is_actual_event = NumberFilter(
         method='is_actual_event_filter'
     )
