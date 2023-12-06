@@ -19,7 +19,7 @@ class Activity(models.Model):
         return self.name
 
 
-class EventPost(models.Model):
+class Event(models.Model):
     """Модель публикаций о мероприятиях."""
     name = models.CharField(
         verbose_name='Название мероприятия',
@@ -28,7 +28,7 @@ class EventPost(models.Model):
     description = models.TextField(verbose_name='Описание мероприятия')
     activity = models.ManyToManyField(
         Activity,
-        through='ActivityForEventPost',
+        through='ActivityForEvent',
         verbose_name='Вид активности мероприятия'
     )
     datetime = models.DateTimeField(
@@ -61,10 +61,10 @@ class EventPost(models.Model):
         return self.name
 
 
-class ActivityForEventPost(models.Model):
+class ActivityForEvent(models.Model):
     """Вспомогательная модель для связи 'вид спорта-мероприятие'."""
     event = models.ForeignKey(
-        EventPost,
+        Event,
         related_name='activities_for_event',
         on_delete=models.CASCADE
     )
@@ -85,39 +85,12 @@ class ActivityForEventPost(models.Model):
 
     def __str__(self):
         return f'{self.event}: {self.activity}'
-    
-
-class ActivityForUser(models.Model):
-    """Вспомогательная модель для связи 'вид спорта-пользователь'."""
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name='activities_for_user',
-        on_delete=models.CASCADE
-    )
-    activity = models.ForeignKey(
-        Activity,
-        related_name='users_for_activity',
-        on_delete=models.CASCADE
-    )
-
-    class Meta:
-        verbose_name_plural = 'Активность - Пользователь'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'activity'],
-                name='unique_activity_for_user'
-            )
-        ]
-
-    def __str__(self):
-        return f'{self.user}: {self.activity}'
-
 
 
 class Comment(models.Model):
     """Модель комментария к отзыву."""
     event = models.ForeignKey(
-        EventPost,
+        Event,
         verbose_name='Комментарий к посту',
         on_delete=models.CASCADE,
         related_name='comments'
@@ -147,7 +120,7 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.text
-    
+
 
 class FavoriteEvent(models.Model):
     """Модель избранных мероприятий."""
@@ -158,7 +131,7 @@ class FavoriteEvent(models.Model):
         on_delete=models.CASCADE
     )
     event = models.ForeignKey(
-        EventPost,
+        Event,
         verbose_name='Мероприятие',
         related_name='users_favorite_for_event',
         on_delete=models.CASCADE
@@ -187,7 +160,7 @@ class Participation(models.Model):
         on_delete=models.CASCADE
     )
     event = models.ForeignKey(
-        EventPost,
+        Event,
         verbose_name='Мероприятие',
         related_name='users_participation_for_event',
         on_delete=models.CASCADE
@@ -235,29 +208,3 @@ class Like(models.Model):
     def __str__(self):
         return (f'Пользователь {self.user.username} оценил комментарий'
                 f'{self.comment}')
-
-
-class FavoriteActivity(models.Model):
-    """Вспомогательная модель любимых видов спорта пользователя."""
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name='activities_for_user',
-        on_delete=models.CASCADE
-    )
-    activity = models.ForeignKey(
-        Activity,
-        related_name='users_for_activity',
-        on_delete=models.CASCADE
-    )
-
-    class Meta:
-        verbose_name_plural = 'Избранные активности пользователей'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'activity'],
-                name='unique_activity_for_user'
-            )
-        ]
-
-    def __str__(self):
-        return f'{self.user}: {self.activity}'

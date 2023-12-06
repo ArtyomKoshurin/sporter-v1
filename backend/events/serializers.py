@@ -2,12 +2,10 @@ from django.db import transaction
 
 from rest_framework import serializers
 
-from .models import (
-    Activity,
-    EventPost,
-    Comment,
-    Participation
-)
+from .models import (Activity,
+                     Event,
+                     Comment,
+                     Participation)
 
 from users.serializers import CustomUserContextSerializer
 
@@ -66,12 +64,13 @@ class EventSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault()
     )
     duration = serializers.IntegerField(required=True)
+    is_favorite = serializers.SerializerMethodField()
     is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
     participants_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = EventPost
+        model = Event
         fields = ('id',
                   'name',
                   'description',
@@ -81,6 +80,7 @@ class EventSerializer(serializers.ModelSerializer):
                   'duration',
                   'location',
                   'comments',
+                  'is_favorite',
                   'is_participate',
                   'participants_count')
 
@@ -117,7 +117,7 @@ class EventSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         activity_list = validated_data.pop('activity')
-        event = EventPost.objects.create(**validated_data)
+        event = Event.objects.create(**validated_data)
         event.activity.set(activity_list)
         Participation.objects.create(event=event, user=user)
         return event
@@ -130,6 +130,12 @@ class EventSerializer(serializers.ModelSerializer):
         instance.activity.clear()
         instance.activity.set(activity_list)
         return instance
+    
+    def get_is_favorite(self, event):
+        user = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return user.favorite_for_user.filter(event=event).exists()
 
     def get_is_participate(self, event):
         user = self.context['request'].user

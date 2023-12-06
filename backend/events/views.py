@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 
 from .models import (Activity,
-                     EventPost,
+                     Event,
                      FavoriteEvent,
                      Participation,
                      Like)
@@ -17,7 +17,7 @@ from .serializers import (ActivitySerializer,
 
 from .permissions import IsAdminAuthorOrReadOnly
 from .pagination import CustomPaginator
-from .filters import EventPostsFilter, ActivityFilter
+from .filters import EventFilter, ActivityFilter
 from users.utils import create_relation, delete_relation
 
 
@@ -33,12 +33,12 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 
 class EventViewSet(viewsets.ModelViewSet):
     """Вьюсет для работы с постами мероприятий."""
-    queryset = EventPost.objects.all()
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend,)
-    filterset_class = EventPostsFilter
+    filterset_class = EventFilter
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -55,13 +55,13 @@ class EventViewSet(viewsets.ModelViewSet):
     def favorite(self, request, pk):
         if request.method == 'POST':
             return create_relation(request,
-                                   EventPost,
+                                   Event,
                                    FavoriteEvent,
                                    pk,
                                    EventSerializer,
                                    'event')
         return delete_relation(request,
-                               EventPost,
+                               Event,
                                FavoriteEvent,
                                pk,
                                'event')
@@ -72,13 +72,13 @@ class EventViewSet(viewsets.ModelViewSet):
     def participate(self, request, pk):
         if request.method == 'POST':
             return create_relation(request,
-                                   EventPost,
+                                   Event,
                                    Participation,
                                    pk,
                                    EventSerializer,
                                    'event')
         return delete_relation(request,
-                               EventPost,
+                               Event,
                                Participation,
                                pk,
                                'event')
@@ -91,7 +91,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPaginator
 
     def get_queryset(self):
-        post = get_object_or_404(EventPost, id=self.kwargs['event_id'])
+        post = get_object_or_404(Event, id=self.kwargs['event_id'])
         return post.comments.all()
 
     def get_permissions(self):
@@ -104,14 +104,14 @@ class CommentViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def perform_create(self, serializer):
-        event = get_object_or_404(EventPost, id=self.kwargs['event_id'])
+        event = get_object_or_404(Event, id=self.kwargs['event_id'])
         serializer.save(author=self.request.user, event=event)
 
     @action(methods=['POST', 'DELETE'],
             detail=True,
             permission_classes=(permissions.IsAuthenticated,))
     def like(self, request, event_id, pk):
-        event = get_object_or_404(EventPost, id=event_id)
+        event = get_object_or_404(Event, id=event_id)
         comment = event.comments.get(id=pk)
         like = Like.objects.filter(user=request.user, comment=comment)
 

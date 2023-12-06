@@ -5,6 +5,7 @@ import base64
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from django.core.files.base import ContentFile
+from django.db import transaction
 
 from djoser.serializers import (UserSerializer,
                                 UserCreateSerializer)
@@ -66,7 +67,7 @@ class CustomUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField()
     birth_year = serializers.IntegerField(write_only=True)
     photo = Base64ImageField()
-    activity = serializers.PrimaryKeyRelatedField(
+    activities = serializers.PrimaryKeyRelatedField(
         queryset=Activity.objects.all(), many=True
     )
 
@@ -84,8 +85,7 @@ class CustomUserSerializer(UserSerializer):
                   'is_subscribed',
                   'subscribers_count',
                   'birth_year',
-                  'activity'
-                  )
+                  'activities')
 
     def validate_birth_year(self, value):
         if (value >= datetime.datetime.now().year
@@ -107,8 +107,9 @@ class CustomUserSerializer(UserSerializer):
     def get_subscribers_count(self, user):
         return user.subscribers.all().count()
 
+    @transaction.atomic
     def update(self, instance, validated_data):
-        activity = validated_data.pop('activity')
+        activity = validated_data.pop('activities')
         instance.birth_year = validated_data.get(
             'birth_year', instance.birth_year
         )
@@ -123,8 +124,8 @@ class CustomUserSerializer(UserSerializer):
         instance.phone_number = validated_data.get(
             'phone_number', instance.phone_number
         )
-        instance.activity.clear()
-        instance.activity.set(activity)
+        instance.activities.clear()
+        instance.activities.set(activity)
         instance.save()
 
         return instance

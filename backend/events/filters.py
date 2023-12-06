@@ -8,7 +8,7 @@ from django_filters.rest_framework import (BooleanFilter,
                                            ModelMultipleChoiceFilter,
                                            NumberFilter)
 
-from .models import Activity, EventPost
+from .models import Activity, Event
 
 
 class ActivityFilter(FilterSet):
@@ -20,7 +20,7 @@ class ActivityFilter(FilterSet):
         fields = ['name']
 
 
-class EventPostsFilter(FilterSet):
+class EventFilter(FilterSet):
     """Фильтр для постов по полю 'участвую', по автору поста,
     по актуальности мероприятия."""
     author = ModelMultipleChoiceFilter(
@@ -32,10 +32,6 @@ class EventPostsFilter(FilterSet):
         field_name='activity__name',
         to_field_name='name',
         queryset=Activity.objects.all()
-    )
-    in_my_recomendation_list = BooleanFilter(
-        field_name='activities_for_event',
-        method='is_recommended_event'
     )
     in_my_participation_list = BooleanFilter(
         field_name='users_participation_for_event',
@@ -61,7 +57,7 @@ class EventPostsFilter(FilterSet):
     )
 
     class Meta:
-        model = EventPost
+        model = Event
         fields = ['activity', 'author']
 
     def is_exist_filter(self, queryset, name, value):
@@ -69,15 +65,6 @@ class EventPostsFilter(FilterSet):
         if self.request.user.is_anonymous:
             return queryset
         return queryset.filter(**{lookup: self.request.user})
-    
-    def is_recommended_event(self, queryset, name, value):
-        lookup = '__'.join([name, 'activity'])
-        activity_for_user = self.request.user.activity
-        if self.request.user.is_anonymous:
-            return queryset
-        return queryset.filter(**{lookup: self.request.user})
-
-
 
     def is_actual_event_filter(self, queryset, name, value):
         if bool(value):
