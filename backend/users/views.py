@@ -74,6 +74,12 @@ class CustomUserViewSet(UserViewSet):
         my_activity_data = Activity.objects.filter(
             users_for_activity__user=request.user
         )
-        event_activity_data = ...
-        recommendation_data = ...
-        # serializer = EventSerializer(, many=True)
+        recommendation_events = []
+        for activity in my_activity_data:
+            event_activity = Event.objects.filter(
+                activities_for_event__activity=activity
+            )
+            recommendation_events.append(event_activity)
+        serializer = EventSerializer(recommendation_events, many=True)
+
+        return Response(serializer.data)
