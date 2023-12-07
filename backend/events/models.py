@@ -5,15 +5,15 @@ from django.db import models
 class Activity(models.Model):
     """Модель видов спорта."""
     name = models.CharField(
-        verbose_name='Вид спорта',
+        verbose_name='Активность',
         max_length=124,
         unique=True
     )
 
     class Meta:
         ordering = ['name']
-        verbose_name = 'Вид активности'
-        verbose_name_plural = 'Виды активностей'
+        verbose_name = 'Активность'
+        verbose_name_plural = 'Активности'
 
     def __str__(self):
         return self.name

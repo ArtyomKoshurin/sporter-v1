@@ -52,6 +52,8 @@ class CustomUser(AbstractUser):
 
     class Meta:
         ordering = ['username']
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
         constraints = [
             models.UniqueConstraint(
                 fields=['username', 'email', 'phone_number'],
@@ -75,6 +77,8 @@ class Subscribe(models.Model):
 
     class Meta:
         ordering = ['author']
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
         constraints = [
             models.UniqueConstraint(fields=['user', 'author'],
                                     name='unique_subscribe')
