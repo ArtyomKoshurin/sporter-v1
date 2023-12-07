@@ -15,6 +15,7 @@ from .utils import create_relation, delete_relation
 from .permissions import IsAdminAuthorOrReadOnly
 
 from events.models import Activity, Event
+from events.serializers import EventSerializer
 
 
 class CustomUserViewSet(UserViewSet):
@@ -75,3 +76,4 @@ class CustomUserViewSet(UserViewSet):
         )
         event_activity_data = ...
         recommendation_data = ...
+        # serializer = EventSerializer(, many=True)

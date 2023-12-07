@@ -46,11 +46,6 @@ class Event(models.Model):
         verbose_name='Место проведения',
         max_length=256
     )
-    participants = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through='Participation',
-        verbose_name='Участники'
-    )
 
     class Meta:
         ordering = ['-datetime']
