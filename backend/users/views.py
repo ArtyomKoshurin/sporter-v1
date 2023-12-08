@@ -71,15 +71,18 @@ class CustomUserViewSet(UserViewSet):
             detail=False,
             permission_classes=[permissions.IsAuthenticated, ])
     def recommendations(self, request):
-        my_activity_data = Activity.objects.filter(
+        user_activity_data = Activity.objects.filter(
             users_for_activity__user=request.user
         )
+        events_data = Event.objects.all()
         recommendation_events = []
-        for activity in my_activity_data:
-            event_activity = Event.objects.filter(
-                activities_for_event__activity=activity
-            )
-            recommendation_events.append(event_activity)
-        serializer = EventSerializer(recommendation_events, many=True)
+
+        for event in events_data:
+            for activity in user_activity_data.values():
+                if activity in event.activity.values():
+                    recommendation_events.append(event)
+        serializer = EventSerializer(
+            recommendation_events, many=True, context={'request': request}
+        )
 
         return Response(serializer.data)
