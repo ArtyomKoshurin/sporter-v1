@@ -29,13 +29,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "events.apps.EventsConfig",
     'django_filters',
     "rest_framework",
     "rest_framework.authtoken",
     "djoser",
     "phonenumber_field",
     "users.apps.UsersConfig",
+    "events.apps.EventsConfig",
 ]
 
 MIDDLEWARE = [
