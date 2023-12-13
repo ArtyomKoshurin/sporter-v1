@@ -5,6 +5,8 @@ from rest_framework import serializers
 from .models import (Activity,
                      Event,
                      Comment,
+                     Location,
+                     LocationForEvent,
                      Participation)
 
 from users.serializers import CustomUserContextSerializer
@@ -15,6 +17,13 @@ class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
         fields = ('id', 'name')
+
+
+class LocationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Location
+        fields = ('id', 'address', 'point')
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -64,6 +73,7 @@ class EventSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault()
     )
     duration = serializers.IntegerField(required=True)
+    location = LocationSerializer(many=True)
     is_favorite = serializers.SerializerMethodField()
     is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
@@ -117,8 +127,12 @@ class EventSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         activity_list = validated_data.pop('activity')
+        location_list = validated_data.pop('location')
         event = Event.objects.create(**validated_data)
         event.activity.set(activity_list)
+        for location in location_list:
+            current_location, value = Location.objects.get_or_create(**location)
+            LocationForEvent.objects.create(event=event, location=current_location)
         Participation.objects.create(event=event, user=user)
         return event
 
@@ -159,4 +173,5 @@ class EventSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['activity'] = instance.activity.values()
+        # data['location'] = instance.location.values()
         return data

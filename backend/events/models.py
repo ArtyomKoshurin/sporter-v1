@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.gis.db import models as gismodels
 from django.db import models
 
 
@@ -17,6 +18,23 @@ class Activity(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class Location(gismodels.Model):
+    """Модель локации мероприятия."""
+    address = models.CharField(
+        verbose_name='Адрес',
+        max_length=256
+    )
+    point = gismodels.PointField(spatial_index=True)
+
+    class Meta:
+        ordering = ['address']
+        verbose_name = 'Место проведения'
+        verbose_name_plural = 'Места проведения'
+
+    def __str__(self):
+        return self.address
 
 
 class Event(models.Model):
@@ -42,9 +60,10 @@ class Event(models.Model):
     duration = models.PositiveIntegerField(
         verbose_name='Длительность мероприятия (мин)',
     )
-    location = models.CharField(
-        verbose_name='Место проведения',
-        max_length=256
+    location = models.ManyToManyField(
+        Location,
+        through='LocationForEvent',
+        verbose_name='Место проведения мероприятия'
     )
 
     class Meta:
@@ -80,6 +99,32 @@ class ActivityForEvent(models.Model):
 
     def __str__(self):
         return f'{self.event}: {self.activity}'
+    
+
+class LocationForEvent(models.Model):
+    """Вспомогательная модель для связи 'вид спорта-мероприятие'."""
+    event = models.ForeignKey(
+        Event,
+        related_name='locations_for_event',
+        on_delete=models.CASCADE
+    )
+    location = models.ForeignKey(
+        Location,
+        related_name='events_for_location',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name_plural = 'Локация - Мероприятие'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'location'],
+                name='unique_location_for_event'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.event}: {self.location}'
 
 
 class Comment(models.Model):

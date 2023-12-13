@@ -6,11 +6,18 @@ from .models import (Activity,
                      Event,
                      FavoriteEvent,
                      Like,
+                     Location,
+                     LocationForEvent,
                      Participation)
 
 
 class ActivityInEvent(admin.TabularInline):
     model = ActivityForEvent
+    min_num = 1
+
+
+class LocationInEvent(admin.TabularInline):
+    model = LocationForEvent
     min_num = 1
 
 
@@ -25,6 +32,14 @@ class ActivityAdmin(admin.ModelAdmin):
     list_display_links = ('name',)
     search_fields = ('name',)
     list_filter = ('name',)
+    empty_value_display = '-пусто-'
+
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'address', 'point')
+    list_display_links = ('address',)
+    search_fields = ('address',)
+    list_filter = ('address',)
     empty_value_display = '-пусто-'
 
 
@@ -45,7 +60,7 @@ class EventAdmin(admin.ModelAdmin):
     list_filter = ('author',)
     empty_value_display = '-пусто-'
 
-    inlines = [ActivityInEvent, InParticipation]
+    inlines = [ActivityInEvent, InParticipation, LocationInEvent]
 
 
 @admin.register(FavoriteEvent)
