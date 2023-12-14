@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.gis.admin import OSMGeoAdmin
 
 from .models import (Activity,
                      ActivityForEvent,
@@ -35,7 +36,7 @@ class ActivityAdmin(admin.ModelAdmin):
     empty_value_display = '-пусто-'
 
 @admin.register(Location)
-class LocationAdmin(admin.ModelAdmin):
+class LocationAdmin(OSMGeoAdmin):
     list_display = ('id', 'address', 'point')
     list_display_links = ('address',)
     search_fields = ('address',)

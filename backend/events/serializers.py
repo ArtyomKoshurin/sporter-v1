@@ -131,7 +131,7 @@ class EventSerializer(serializers.ModelSerializer):
         event = Event.objects.create(**validated_data)
         event.activity.set(activity_list)
         for location in location_list:
-            current_location, value = Location.objects.get_or_create(**location)
+            current_location, _ = Location.objects.get_or_create(**location)
             LocationForEvent.objects.create(event=event, location=current_location)
         Participation.objects.create(event=event, user=user)
         return event
