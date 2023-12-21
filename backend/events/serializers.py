@@ -1,4 +1,7 @@
 from django.db import transaction
+from django.conf import settings
+
+from geopy import Yandex
 
 from rest_framework import serializers
 
@@ -20,6 +23,9 @@ class ActivitySerializer(serializers.ModelSerializer):
 
 
 class LocationSerializer(serializers.ModelSerializer):
+    """Сериализатор для локации."""
+    address = serializers.CharField(required=False)
+    point = serializers.CharField(required=False)
 
     class Meta:
         model = Location
@@ -93,6 +99,21 @@ class EventSerializer(serializers.ModelSerializer):
                   'is_favorite',
                   'is_participate',
                   'participants_count')
+        
+    def get_location(self, location):
+        if location.get('address'):
+            res = Yandex(
+                api_key=settings.API_KEY
+            ).geocode(location['address'])
+            location['point'] = f'POINT({res.longitude} {res.latitude})'
+        elif location.get('point'):
+            res = Yandex(
+                api_key=settings.API_KEY
+            ).reverse(location['point'])
+            location['address'] = res.address
+
+        return location
+        
 
     def validate_name(self, value):
         if len(value) > 124:
@@ -130,9 +151,13 @@ class EventSerializer(serializers.ModelSerializer):
         location_list = validated_data.pop('location')
         event = Event.objects.create(**validated_data)
         event.activity.set(activity_list)
+        
         for location in location_list:
-            current_location, _ = Location.objects.get_or_create(**location)
-            LocationForEvent.objects.create(event=event, location=current_location)
+            location = self.get_location(location)
+
+        current_location, _ = Location.objects.get_or_create(**location)
+        LocationForEvent.objects.create(event=event, location=current_location)
+        
         Participation.objects.create(event=event, user=user)
         return event
 
@@ -144,7 +169,7 @@ class EventSerializer(serializers.ModelSerializer):
         instance.activity.clear()
         instance.activity.set(activity_list)
         return instance
-    
+
     def get_is_favorite(self, event):
         user = self.context['request'].user
         if user.is_anonymous:

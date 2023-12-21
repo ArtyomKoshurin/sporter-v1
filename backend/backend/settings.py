@@ -147,6 +147,8 @@ USE_I18N = True
 
 PHONENUMBER_DEFAULT_REGION = 'RU'
 
+API_KEY = os.getenv('API_KEY', default='key')
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
