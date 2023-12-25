@@ -102,18 +102,23 @@ class EventSerializer(serializers.ModelSerializer):
         
     def get_location(self, location):
         if location.get('address'):
-            res = Yandex(
+            location_data = Yandex(
                 api_key=settings.API_KEY
             ).geocode(location['address'])
-            location['point'] = f'POINT({res.longitude} {res.latitude})'
+            location['address'] = location_data.address
+            location['point'] = f'POINT({location_data.longitude} {location_data.latitude})'
+
         elif location.get('point'):
-            res = Yandex(
+            point = location.get('point')
+            location_data = Yandex(
                 api_key=settings.API_KEY
-            ).reverse(location['point'])
-            location['address'] = res.address
+            ).reverse(point)
+
+            location['address'] = location_data.address
+            location['point'] = f'POINT({point})'
 
         return location
-        
+
 
     def validate_name(self, value):
         if len(value) > 124:
@@ -155,8 +160,8 @@ class EventSerializer(serializers.ModelSerializer):
         for location in location_list:
             location = self.get_location(location)
 
-        current_location, _ = Location.objects.get_or_create(**location)
-        LocationForEvent.objects.create(event=event, location=current_location)
+            current_location, _ = Location.objects.get_or_create(**location)
+            LocationForEvent.objects.create(event=event, location=current_location)
         
         Participation.objects.create(event=event, user=user)
         return event
