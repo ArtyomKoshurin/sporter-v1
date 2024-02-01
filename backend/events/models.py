@@ -1,25 +1,43 @@
 from django.conf import settings
+from django.contrib.gis.db import models as gismodels
 from django.db import models
 
 
 class Activity(models.Model):
     """Модель видов спорта."""
     name = models.CharField(
-        verbose_name='Вид спорта',
+        verbose_name='Активность',
         max_length=124,
         unique=True
     )
 
     class Meta:
         ordering = ['name']
-        verbose_name = 'Вид активности'
-        verbose_name_plural = 'Виды активностей'
+        verbose_name = 'Активность'
+        verbose_name_plural = 'Активности'
 
     def __str__(self):
         return self.name
 
 
-class EventPost(models.Model):
+class Location(gismodels.Model):
+    """Модель локации мероприятия."""
+    address = models.CharField(
+        verbose_name='Адрес',
+        max_length=256
+    )
+    point = gismodels.PointField(spatial_index=True)
+
+    class Meta:
+        ordering = ['address']
+        verbose_name = 'Место проведения'
+        verbose_name_plural = 'Места проведения'
+
+    def __str__(self):
+        return self.address
+
+
+class Event(models.Model):
     """Модель публикаций о мероприятиях."""
     name = models.CharField(
         verbose_name='Название мероприятия',
@@ -28,7 +46,7 @@ class EventPost(models.Model):
     description = models.TextField(verbose_name='Описание мероприятия')
     activity = models.ManyToManyField(
         Activity,
-        through='ActivityForEventPost',
+        through='ActivityForEvent',
         verbose_name='Вид активности мероприятия'
     )
     datetime = models.DateTimeField(
@@ -42,14 +60,10 @@ class EventPost(models.Model):
     duration = models.PositiveIntegerField(
         verbose_name='Длительность мероприятия (мин)',
     )
-    location = models.CharField(
-        verbose_name='Место проведения',
-        max_length=256
-    )
-    participants = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through='Participation',
-        verbose_name='Участники'
+    location = models.ManyToManyField(
+        Location,
+        through='LocationForEvent',
+        verbose_name='Место проведения мероприятия'
     )
 
     class Meta:
@@ -61,10 +75,10 @@ class EventPost(models.Model):
         return self.name
 
 
-class ActivityForEventPost(models.Model):
-    """Вспомогательная модель для связи 'вид спорта-юзер'."""
+class ActivityForEvent(models.Model):
+    """Вспомогательная модель для связи 'вид спорта-мероприятие'."""
     event = models.ForeignKey(
-        EventPost,
+        Event,
         related_name='activities_for_event',
         on_delete=models.CASCADE
     )
@@ -85,12 +99,38 @@ class ActivityForEventPost(models.Model):
 
     def __str__(self):
         return f'{self.event}: {self.activity}'
+    
+
+class LocationForEvent(models.Model):
+    """Вспомогательная модель для связи 'вид спорта-мероприятие'."""
+    event = models.ForeignKey(
+        Event,
+        related_name='locations_for_event',
+        on_delete=models.CASCADE
+    )
+    location = models.ForeignKey(
+        Location,
+        related_name='events_for_location',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name_plural = 'Локация - Мероприятие'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'location'],
+                name='unique_location_for_event'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.event}: {self.location}'
 
 
 class Comment(models.Model):
     """Модель комментария к отзыву."""
     event = models.ForeignKey(
-        EventPost,
+        Event,
         verbose_name='Комментарий к посту',
         on_delete=models.CASCADE,
         related_name='comments'
@@ -122,6 +162,35 @@ class Comment(models.Model):
         return self.text
 
 
+class FavoriteEvent(models.Model):
+    """Модель избранных мероприятий."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Участник',
+        related_name='favorite_for_user',
+        on_delete=models.CASCADE
+    )
+    event = models.ForeignKey(
+        Event,
+        verbose_name='Мероприятие',
+        related_name='users_favorite_for_event',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name_plural = 'Избранные мероприятия'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'event'],
+                name='unique_favorite'
+            )
+        ]
+
+    def __str__(self):
+        return (f'Мероприятие {self.event} в избранном у пользователя  '
+                f'{self.user.username}')
+
+
 class Participation(models.Model):
     """Модель участия пользователя в мероприятии."""
     user = models.ForeignKey(
@@ -131,14 +200,14 @@ class Participation(models.Model):
         on_delete=models.CASCADE
     )
     event = models.ForeignKey(
-        EventPost,
+        Event,
         verbose_name='Мероприятие',
         related_name='users_participation_for_event',
         on_delete=models.CASCADE
     )
 
     class Meta:
-        verbose_name_plural = 'Мероприятие - Участник'
+        verbose_name_plural = 'Участие в мероприятиях'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'event'],
@@ -179,29 +248,3 @@ class Like(models.Model):
     def __str__(self):
         return (f'Пользователь {self.user.username} оценил комментарий'
                 f'{self.comment}')
-
-
-class FavoriteActivity(models.Model):
-    """Вспомогательная модель любимых видов спорта пользователя."""
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name='activities_for_user',
-        on_delete=models.CASCADE
-    )
-    activity = models.ForeignKey(
-        Activity,
-        related_name='users_for_activity',
-        on_delete=models.CASCADE
-    )
-
-    class Meta:
-        verbose_name_plural = 'Избранные активности пользователей'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'activity'],
-                name='unique_activity_for_user'
-            )
-        ]
-
-    def __str__(self):
-        return f'{self.user}: {self.activity}'

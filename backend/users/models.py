@@ -41,9 +41,10 @@ class CustomUser(AbstractUser):
         null=True,
         blank=True
     )
-    activity = models.ManyToManyField(
+    activities = models.ManyToManyField(
         Activity,
-        related_name='user_activity'
+        through='FavoriteActivity',
+        related_name='user_activities'
     )
 
     USERNAME_FIELD = 'email'
@@ -51,6 +52,8 @@ class CustomUser(AbstractUser):
 
     class Meta:
         ordering = ['username']
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
         constraints = [
             models.UniqueConstraint(
                 fields=['username', 'email', 'phone_number'],
@@ -74,6 +77,8 @@ class Subscribe(models.Model):
 
     class Meta:
         ordering = ['author']
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
         constraints = [
             models.UniqueConstraint(fields=['user', 'author'],
                                     name='unique_subscribe')
@@ -81,3 +86,29 @@ class Subscribe(models.Model):
 
     def __str__(self):
         return f'{self.user} {self.author}'
+    
+
+class FavoriteActivity(models.Model):
+    """Вспомогательная модель любимых видов спорта пользователя."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='activities_for_user',
+        on_delete=models.CASCADE
+    )
+    activity = models.ForeignKey(
+        Activity,
+        related_name='users_for_activity',
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name_plural = 'Избранные активности пользователей'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'activity'],
+                name='unique_activity_for_user'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user}: {self.activity}'

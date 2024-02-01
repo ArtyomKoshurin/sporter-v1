@@ -17,7 +17,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', default='key')
 # django-insecure-79my6d$89-wge6yf_h1fw+dm18fx@qt)ok2tl$inzb^rn^k4ay
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', default=True)
+DEBUG = bool(os.getenv('DEBUG') == 'True')
 
 ALLOWED_HOSTS = ['*']
 
@@ -29,13 +29,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "events.apps.EventsConfig",
+    'django.contrib.gis',
     'django_filters',
     "rest_framework",
     "rest_framework.authtoken",
     "djoser",
     "phonenumber_field",
     "users.apps.UsersConfig",
+    "events.apps.EventsConfig",
 ]
 
 MIDDLEWARE = [
@@ -68,11 +69,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "backend.wsgi.application"
 
-
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': os.getenv('POSTGRES_DB', 'django'),
+        'USER': os.getenv('POSTGRES_USER', 'django'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', 5432)
     }
 }
 
@@ -133,12 +137,6 @@ DJOSER = {
 
 AUTH_USER_MODEL = 'users.CustomUser'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'collected_static'
-
 LANGUAGE_CODE = 'ru-Ru'
 
 TIME_ZONE = 'Europe/Moscow'
@@ -148,6 +146,8 @@ USE_TZ = True
 USE_I18N = True
 
 PHONENUMBER_DEFAULT_REGION = 'RU'
+
+API_KEY = os.getenv('API_KEY', default='key')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

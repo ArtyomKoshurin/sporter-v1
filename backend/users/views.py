@@ -14,6 +14,9 @@ from .utils import create_relation, delete_relation
 
 from .permissions import IsAdminAuthorOrReadOnly
 
+from events.models import Activity, Event
+from events.serializers import EventSerializer
+
 
 class CustomUserViewSet(UserViewSet):
     """Кастомный вьюсет Пользователя."""
@@ -63,3 +66,23 @@ class CustomUserViewSet(UserViewSet):
         )
 
         return self.get_paginated_response(serializer.data)
+    
+    @action(methods=['GET'],
+            detail=False,
+            permission_classes=[permissions.IsAuthenticated, ])
+    def recommendations(self, request):
+        user_activity_data = Activity.objects.filter(
+            users_for_activity__user=request.user
+        )
+        events_data = Event.objects.all()
+        recommendation_events = []
+
+        for event in events_data:
+            for activity in user_activity_data.values():
+                if activity in event.activity.values():
+                    recommendation_events.append(event)
+        serializer = EventSerializer(
+            recommendation_events, many=True, context={'request': request}
+        )
+
+        return Response(serializer.data)

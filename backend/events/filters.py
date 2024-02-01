@@ -8,7 +8,7 @@ from django_filters.rest_framework import (BooleanFilter,
                                            ModelMultipleChoiceFilter,
                                            NumberFilter)
 
-from .models import Activity, EventPost
+from .models import Activity, Event
 
 
 class ActivityFilter(FilterSet):
@@ -20,7 +20,7 @@ class ActivityFilter(FilterSet):
         fields = ['name']
 
 
-class EventPostsFilter(FilterSet):
+class EventFilter(FilterSet):
     """Фильтр для постов по полю 'участвую', по автору поста,
     по актуальности мероприятия."""
     author = ModelMultipleChoiceFilter(
@@ -35,10 +35,6 @@ class EventPostsFilter(FilterSet):
     )
     in_my_participation_list = BooleanFilter(
         field_name='users_participation_for_event',
-        method='is_exist_filter'
-    )
-    in_my_activities = BooleanFilter(
-        field_name='activities_for_event__activity__users_for_activity',
         method='is_exist_filter'
     )
     is_actual_event = NumberFilter(
@@ -57,7 +53,7 @@ class EventPostsFilter(FilterSet):
     )
 
     class Meta:
-        model = EventPost
+        model = Event
         fields = ['activity', 'author']
 
     def is_exist_filter(self, queryset, name, value):

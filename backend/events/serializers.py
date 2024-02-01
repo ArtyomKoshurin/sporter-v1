@@ -1,15 +1,18 @@
 from django.db import transaction
+from django.conf import settings
+
+from geopy import Yandex
 
 from rest_framework import serializers
 
-from .models import (
-    Activity,
-    EventPost,
-    Comment,
-    Participation
-)
+from .models import (Activity,
+                     Event,
+                     Comment,
+                     Location,
+                     LocationForEvent,
+                     Participation)
 
-from users.serializers import CustomUserSerializer
+from users.serializers import CustomUserContextSerializer
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -19,9 +22,19 @@ class ActivitySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class LocationSerializer(serializers.ModelSerializer):
+    """Сериализатор для локации."""
+    address = serializers.CharField(required=False)
+    point = serializers.CharField(required=False)
+
+    class Meta:
+        model = Location
+        fields = ('id', 'address', 'point')
+
+
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор для создания комментария к посту."""
-    author = CustomUserSerializer(
+    author = CustomUserContextSerializer(
         default=serializers.CurrentUserDefault()
     )
     pub_date = serializers.DateTimeField(read_only=True, format='%d.%m.%Y')
@@ -62,16 +75,18 @@ class EventSerializer(serializers.ModelSerializer):
         queryset=Activity.objects.all(), many=True
     )
     datetime = serializers.DateTimeField(format='%d.%m.%Y')
-    author = CustomUserSerializer(
+    author = CustomUserContextSerializer(
         default=serializers.CurrentUserDefault()
     )
     duration = serializers.IntegerField(required=True)
+    location = LocationSerializer(many=True)
+    is_favorite = serializers.SerializerMethodField()
     is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
-    participants = serializers.SerializerMethodField()
+    participants_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = EventPost
+        model = Event
         fields = ('id',
                   'name',
                   'description',
@@ -81,8 +96,29 @@ class EventSerializer(serializers.ModelSerializer):
                   'duration',
                   'location',
                   'comments',
+                  'is_favorite',
                   'is_participate',
-                  'participants')
+                  'participants_count')
+        
+    def get_location(self, location):
+        if location.get('address'):
+            location_data = Yandex(
+                api_key=settings.API_KEY
+            ).geocode(location['address'])
+            location['address'] = location_data.address
+            location['point'] = f'POINT({location_data.longitude} {location_data.latitude})'
+
+        elif location.get('point'):
+            point = location.get('point')
+            location_data = Yandex(
+                api_key=settings.API_KEY
+            ).reverse(point)
+
+            location['address'] = location_data.address
+            location['point'] = f'POINT({point})'
+
+        return location
+
 
     def validate_name(self, value):
         if len(value) > 124:
@@ -117,21 +153,33 @@ class EventSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         activity_list = validated_data.pop('activity')
-        event = EventPost.objects.create(**validated_data)
+        location_list = validated_data.pop('location')
+        event = Event.objects.create(**validated_data)
         event.activity.set(activity_list)
+        
+        for location in location_list:
+            location = self.get_location(location)
+
+            current_location, _ = Location.objects.get_or_create(**location)
+            LocationForEvent.objects.create(event=event, location=current_location)
+        
         Participation.objects.create(event=event, user=user)
         return event
 
     @transaction.atomic
     def update(self, instance, validated_data):
         activity_list = validated_data.pop('activity', instance.activity)
-
         instance = super().update(instance, validated_data)
         instance.save()
         instance.activity.clear()
         instance.activity.set(activity_list)
-
         return instance
+
+    def get_is_favorite(self, event):
+        user = self.context['request'].user
+        if user.is_anonymous:
+            return False
+        return user.favorite_for_user.filter(event=event).exists()
 
     def get_is_participate(self, event):
         user = self.context['request'].user
@@ -139,7 +187,7 @@ class EventSerializer(serializers.ModelSerializer):
             return False
         return user.events_participation_for_user.filter(event=event).exists()
 
-    def get_participants(self, event):
+    def get_participants_count(self, event):
         return event.users_participation_for_event.all().count()
 
     def get_comments(self, event):
@@ -155,4 +203,5 @@ class EventSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['activity'] = instance.activity.values()
+        # data['location'] = instance.location.values()
         return data
