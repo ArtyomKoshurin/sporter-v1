@@ -99,7 +99,7 @@ class ActivityForEvent(models.Model):
 
     def __str__(self):
         return f'{self.event}: {self.activity}'
-    
+
 
 class LocationForEvent(models.Model):
     """Вспомогательная модель для связи 'вид спорта-мероприятие'."""
