@@ -1,3 +1,5 @@
+import socket
+
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
@@ -18,6 +20,7 @@ from .serializers import (ActivitySerializer,
 from .permissions import IsAdminAuthorOrReadOnly
 from .pagination import CustomPaginator
 from .filters import EventFilter, ActivityFilter
+from .utils import get_client_ip
 from users.utils import create_relation, delete_relation
 
 
@@ -48,7 +51,7 @@ class EventViewSet(viewsets.ModelViewSet):
         else:
             self.permission_classes = [permissions.IsAuthenticated]
         return super().get_permissions()
-    
+
     @action(methods=['POST', 'DELETE'],
             detail=True,
             permission_classes=[permissions.IsAuthenticated, ])
@@ -68,7 +71,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(methods=['POST', 'DELETE'],
             detail=True,
-            permission_classes=[permissions.IsAuthenticated, ])
+            permission_classes=[permissions.IsAuthenticated,])
     def participate(self, request, pk):
         if request.method == 'POST':
             return create_relation(request,
@@ -82,6 +85,17 @@ class EventViewSet(viewsets.ModelViewSet):
                                Participation,
                                pk,
                                'event')
+
+    @action(methods=['GET'],
+            detail=True,
+            permission_classes=[permissions.IsAuthenticated,])
+    def eventroute(self, request, **kwargs):
+        event = get_object_or_404(Event, id=self.kwargs['pk'])
+# При тестировании проекта находим ipчерез локальный домен по библиотеке socket
+# При деплое меняем на получениу ip через функцию get_client_ip
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+        return Response(f'Здесь будет маршрут, {local_ip}')
 
 
 class CommentViewSet(viewsets.ModelViewSet):

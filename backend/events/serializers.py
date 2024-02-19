@@ -99,7 +99,7 @@ class EventSerializer(serializers.ModelSerializer):
                   'is_favorite',
                   'is_participate',
                   'participants_count')
-        
+
     def get_location(self, location):
         if location.get('address'):
             location_data = Yandex(
@@ -118,7 +118,6 @@ class EventSerializer(serializers.ModelSerializer):
             location['point'] = f'POINT({point})'
 
         return location
-
 
     def validate_name(self, value):
         if len(value) > 124:
@@ -156,13 +155,13 @@ class EventSerializer(serializers.ModelSerializer):
         location_list = validated_data.pop('location')
         event = Event.objects.create(**validated_data)
         event.activity.set(activity_list)
-        
+
         for location in location_list:
             location = self.get_location(location)
 
             current_location, _ = Location.objects.get_or_create(**location)
             LocationForEvent.objects.create(event=event, location=current_location)
-        
+
         Participation.objects.create(event=event, user=user)
         return event
 

@@ -1,7 +1,11 @@
 from django.urls import path, include
 from rest_framework import routers
 
-from .views import ActivityViewSet, EventViewSet, CommentViewSet
+from .views import (
+    ActivityViewSet,
+    EventViewSet,
+    CommentViewSet
+)
 
 app_name = 'events'
 
