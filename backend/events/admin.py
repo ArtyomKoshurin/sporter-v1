@@ -8,17 +8,11 @@ from .models import (Activity,
                      FavoriteEvent,
                      Like,
                      Location,
-                     LocationForEvent,
                      Participation)
 
 
 class ActivityInEvent(admin.TabularInline):
     model = ActivityForEvent
-    min_num = 1
-
-
-class LocationInEvent(admin.TabularInline):
-    model = LocationForEvent
     min_num = 1
 
 
@@ -61,7 +55,7 @@ class EventAdmin(admin.ModelAdmin):
     list_filter = ('author',)
     empty_value_display = '-пусто-'
 
-    inlines = [ActivityInEvent, InParticipation, LocationInEvent]
+    inlines = [ActivityInEvent, InParticipation]
 
 
 @admin.register(FavoriteEvent)
