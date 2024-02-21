@@ -4,12 +4,12 @@ from django.conf import settings
 from geopy import Yandex
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from .models import (Activity,
                      Event,
                      Comment,
                      Location,
-                     LocationForEvent,
                      Participation)
 
 from users.serializers import CustomUserContextSerializer
@@ -79,7 +79,7 @@ class EventSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault()
     )
     duration = serializers.IntegerField(required=True)
-    location = LocationSerializer(many=True)
+    location = LocationSerializer()
     is_favorite = serializers.SerializerMethodField()
     is_participate = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
@@ -152,16 +152,12 @@ class EventSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         activity_list = validated_data.pop('activity')
-        location_list = validated_data.pop('location')
-        event = Event.objects.create(**validated_data)
+        location = validated_data.pop('location')
+        location = self.get_location(location)
+        location = Location.objects.create(**location)
+
+        event = Event.objects.create(location=location, **validated_data)
         event.activity.set(activity_list)
-
-        for location in location_list:
-            location = self.get_location(location)
-
-            current_location, _ = Location.objects.get_or_create(**location)
-            LocationForEvent.objects.create(event=event, location=current_location)
-
         Participation.objects.create(event=event, user=user)
         return event
 
@@ -202,5 +198,5 @@ class EventSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['activity'] = instance.activity.values()
-        # data['location'] = instance.location.values()
+        # data['location'] = instance.location.address
         return data
